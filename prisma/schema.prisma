@@ -1,0 +1,317 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model book {
+  id           String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  book_type_id String?       @db.Uuid
+  description  String?
+  reference    String?       @db.VarChar(255)
+  user_id      String?       @db.Uuid
+  created_at   DateTime?     @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime?     @default(now()) @db.Timestamptz(6)
+  book_type    book_type?    @relation(fields: [book_type_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  users        users?        @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  book_export  book_export[]
+  items        items[]
+  costs        costs[]
+
+  @@index([book_type_id], map: "idx_book_book_type_id")
+  @@index([user_id], map: "idx_book_user_id")
+}
+
+model book_export {
+  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  book_id         String?   @db.Uuid
+  file_path       String?   @db.VarChar(500)
+  authority_email String?   @db.VarChar(255)
+  export_url      String?
+  export_url_slug String?   @db.VarChar(255)
+  exported_by     String?   @db.Uuid
+  created_at      DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime? @default(now()) @db.Timestamptz(6)
+  book            book?     @relation(fields: [book_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users           users?    @relation(fields: [exported_by], references: [id], onUpdate: NoAction)
+}
+
+model book_type {
+  id                String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name              String              @db.VarChar(100)
+  display_name      String?             @db.VarChar(255)
+  description       String?
+  created_at        DateTime?           @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime?           @default(now()) @db.Timestamptz(6)
+  book              book[]
+  field_definitions field_definitions[]
+}
+
+model category {
+  id                 String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id            String?    @db.Uuid
+  parent_category_id String?    @db.Uuid
+  name               String     @db.VarChar(100)
+  created_at         DateTime?  @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?  @default(now()) @db.Timestamptz(6)
+  category           category?  @relation("categoryTocategory", fields: [parent_category_id], references: [id], onUpdate: NoAction)
+  other_category     category[] @relation("categoryTocategory")
+  users              users?     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  items              items[]
+}
+
+model costs {
+  id                  String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id             String?           @db.Uuid
+  book_id             String?           @db.Uuid
+  costs_event_type_id String?           @db.Uuid
+  amount              Decimal           @db.Decimal(10, 2)
+  details_message     String?
+  date                DateTime          @db.Date
+  created_at          DateTime?         @default(now()) @db.Timestamptz(6)
+  costs_event_type    costs_event_type? @relation(fields: [costs_event_type_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  users               users?            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  book                book?             @relation(fields: [book_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_costs_user_id")
+  @@index([book_id], map: "idx_costs_book_id")
+}
+
+model costs_event_type {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id    String?   @db.Uuid
+  name       String    @db.VarChar(100)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  costs      costs[]
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model document_type {
+  id         String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name       String      @db.VarChar(100)
+  created_at DateTime?   @default(now()) @db.Timestamptz(6)
+  updated_at DateTime?   @default(now()) @db.Timestamptz(6)
+  documents  documents[]
+}
+
+model documents {
+  id               String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  document_type_id String?        @db.Uuid
+  item_id          String?        @db.Uuid
+  person_id        String?        @db.Uuid
+  title            String         @db.VarChar(255)
+  file             String?        @db.VarChar(500)
+  description      String?
+  issued_by        String?        @db.VarChar(255)
+  issued_date      DateTime?      @db.Date
+  document_number  String?        @db.VarChar(100)
+  expiry_date      DateTime?      @db.Date
+  created_at       DateTime?      @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?      @default(now()) @db.Timestamptz(6)
+  document_type    document_type? @relation(fields: [document_type_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  person           person?        @relation(fields: [person_id], references: [id], onUpdate: NoAction)
+  items            items?         @relation(fields: [item_id], references: [id], onUpdate: NoAction, map: "fk_documents_item_id")
+
+  @@index([item_id], map: "idx_documents_item_id")
+}
+
+model field_definitions {
+  id              String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  book_type_id    String?           @db.Uuid
+  field_name      String            @db.VarChar(100)
+  field_label     String?           @db.VarChar(255)
+  field_type      String            @db.VarChar(50)
+  is_required     Boolean?          @default(false)
+  default_value   String?
+  display_order   Int?
+  created_at      DateTime?         @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?         @default(now()) @db.Timestamptz(6)
+  book_type       book_type?        @relation(fields: [book_type_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  item_attributes item_attributes[]
+}
+
+model item_attributes {
+  id                  String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  item_id             String?            @db.Uuid
+  field_definition_id String?            @db.Uuid
+  value               String?
+  created_at          DateTime?          @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?          @default(now()) @db.Timestamptz(6)
+  field_definitions   field_definitions? @relation(fields: [field_definition_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  items               items?             @relation(fields: [item_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([item_id], map: "idx_item_attributes_item_id")
+}
+
+model item_incidents {
+  id                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  item_id           String?   @db.Uuid
+  incident_type     String?   @db.VarChar(100)
+  description       String?
+  incident_date     DateTime? @db.Date
+  reported_by       String?   @db.VarChar(255)
+  resolution_status String?   @default("open") @db.VarChar(50)
+  created_at        DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime? @default(now()) @db.Timestamptz(6)
+  items             items?    @relation(fields: [item_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([item_id], map: "idx_item_incidents_item_id")
+}
+
+model item_locations {
+  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  item_id          String?   @db.Uuid
+  location_type    String?   @db.VarChar(100)
+  location_details String?
+  moved_date       DateTime? @db.Date
+  created_at       DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime? @default(now()) @db.Timestamptz(6)
+  items            items?    @relation(fields: [item_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([item_id], map: "idx_item_locations_item_id")
+}
+
+model item_purchases {
+  id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  item_id        String?   @db.Uuid
+  seller_id      String?   @db.Uuid
+  purchase_price Decimal?  @db.Decimal(10, 2)
+  purchase_date  DateTime? @db.Date
+  payment_method String?   @db.VarChar(100)
+  notes          String?
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime? @default(now()) @db.Timestamptz(6)
+  items          items?    @relation(fields: [item_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  person         person?   @relation(fields: [seller_id], references: [id], onUpdate: NoAction)
+
+  @@index([item_id], map: "idx_item_purchases_item_id")
+}
+
+model item_sales {
+  id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  item_id        String?   @db.Uuid
+  client_id      String?   @db.Uuid
+  sale_price     Decimal?  @db.Decimal(10, 2)
+  sale_date      DateTime? @db.Date
+  sale_location  String?   @db.VarChar(255)
+  payment_method String?   @db.VarChar(100)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime? @default(now()) @db.Timestamptz(6)
+  person         person?   @relation(fields: [client_id], references: [id], onUpdate: NoAction)
+  items          items?    @relation(fields: [item_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([item_id], map: "idx_item_sales_item_id")
+}
+
+model items {
+  id              String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  book_id         String?           @db.Uuid
+  item_number     String?           @db.VarChar(100)
+  description     String?
+  category_id     String?           @db.Uuid
+  color           String?           @db.VarChar(50)
+  grade           String?           @db.VarChar(50)
+  created_at      DateTime?         @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?         @default(now()) @db.Timestamptz(6)
+  documents       documents[]
+  item_attributes item_attributes[]
+  item_incidents  item_incidents[]
+  item_locations  item_locations[]
+  item_purchases  item_purchases[]
+  item_sales      item_sales[]
+  book            book?             @relation(fields: [book_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  category        category?         @relation(fields: [category_id], references: [id], onUpdate: NoAction)
+
+  @@index([book_id], map: "idx_items_book_id")
+  @@index([category_id], map: "idx_items_category_id")
+}
+
+model notifications {
+  id                   String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  message              String
+  type                 String?   @db.VarChar(50)
+  notification_user_id String?   @db.Uuid
+  user_read            Boolean?  @default(false)
+  created_at           DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime? @default(now()) @db.Timestamptz(6)
+  users                users?    @relation(fields: [notification_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([notification_user_id], map: "idx_notifications_user_id")
+}
+
+model person {
+  id             String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  person_type_id String?          @db.Uuid
+  user_id        String?          @db.Uuid
+  name           String           @db.VarChar(255)
+  lastname       String?          @db.VarChar(255)
+  address_line_1 String?          @db.VarChar(255)
+  address_line_2 String?          @db.VarChar(255)
+  zipcode        String?          @db.VarChar(20)
+  country        String?          @db.VarChar(100)
+  phone          String?          @db.VarChar(50)
+  website        String?          @db.VarChar(255)
+  specialization String?          @db.VarChar(255)
+  created_at     DateTime?        @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime?        @default(now()) @db.Timestamptz(6)
+  documents      documents[]
+  item_purchases item_purchases[]
+  item_sales     item_sales[]
+  person_type    person_type?     @relation(fields: [person_type_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  users          users?           @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([person_type_id], map: "idx_person_person_type_id")
+  @@index([user_id], map: "idx_person_user_id")
+}
+
+model person_type {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name       String    @db.VarChar(100)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  person     person[]
+}
+
+model users {
+  id               String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email            String             @unique @db.VarChar(255)
+  username         String             @unique @db.VarChar(100)
+  name             String?            @db.VarChar(255)
+  pass             String             @db.VarChar(255)
+  created_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?          @default(now()) @db.Timestamptz(6)
+  book             book[]
+  book_export      book_export[]
+  category         category[]
+  costs            costs[]
+  costs_event_type costs_event_type[]
+  notifications    notifications[]
+  person           person[]
+  subscriptions    subscriptions[]
+
+  @@index([email], map: "idx_users_email")
+  @@index([username], map: "idx_users_username")
+}
+
+model subscriptions {
+  id                     String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id                String    @db.Uuid
+  stripe_subscription_id String    @unique @db.VarChar(255)
+  stripe_customer_id     String    @db.VarChar(255)
+  status                 String    @db.VarChar(50)
+  current_period_start   DateTime  @db.Timestamptz(6)
+  current_period_end     DateTime  @db.Timestamptz(6)
+  cancel_at              DateTime? @db.Timestamptz(6)
+  canceled_at            DateTime? @db.Timestamptz(6)
+  created_at             DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime? @default(now()) @db.Timestamptz(6)
+  users                  users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_subscriptions_user_id")
+  @@index([stripe_customer_id], map: "idx_subscriptions_stripe_customer_id")
+  @@index([status], map: "idx_subscriptions_status")
+}
