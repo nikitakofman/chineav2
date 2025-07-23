@@ -12,6 +12,7 @@ import { useLocale } from 'next-intl'
 import { AddItemModal } from './add-item-modal'
 import { SaleModal } from './sale-modal'
 import { IncidentModal } from './incident-modal'
+import { ImageViewer } from '@/components/ui/image-viewer'
 
 interface ItemsGridProps {
   items: Array<{
@@ -43,17 +44,35 @@ interface ItemsGridProps {
       location_type: string | null
       location_details: string | null
     }>
+    images?: Array<{
+      id: string
+      url: string
+      file_name: string
+      original_name: string
+      is_primary: boolean
+      alt_text?: string | null
+      title?: string | null
+    }>
+    primaryImage?: {
+      id: string
+      url: string
+      alt_text?: string | null
+      title?: string | null
+    } | null
+    imageCount?: number
   }>
   categories?: Array<{
     id: string
     name: string
   }>
+  onUpdate?: () => void
 }
 
-export function ItemsGrid({ items, categories = [] }: ItemsGridProps) {
+export function ItemsGrid({ items, categories = [], onUpdate }: ItemsGridProps) {
   const [viewingItem, setViewingItem] = useState<(typeof items)[0] | null>(null)
   const [sellingItem, setSellingItem] = useState<(typeof items)[0] | null>(null)
   const [reportingIncident, setReportingIncident] = useState<(typeof items)[0] | null>(null)
+  const [selectedImage, setSelectedImage] = useState<{ url: string; alt?: string } | null>(null)
   const t = useTranslations()
   const locale = useLocale()
   const dateLocale = locale === 'fr' ? fr : enUS
@@ -107,6 +126,33 @@ export function ItemsGrid({ items, categories = [] }: ItemsGridProps) {
                   </div>
                 </div>
               </CardHeader>
+              
+              {/* Image Preview */}
+              {item.primaryImage && (
+                <div className="px-6 pb-4">
+                  <div 
+                    className="w-full h-32 bg-muted rounded-md overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => setSelectedImage({ 
+                      url: item.primaryImage!.url, 
+                      alt: item.primaryImage!.alt_text || item.primaryImage!.title || 'Item image' 
+                    })}
+                  >
+                    <img
+                      src={item.primaryImage.url}
+                      alt={item.primaryImage.alt_text || item.primaryImage.title || 'Item image'}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = '/placeholder-image.png'
+                      }}
+                    />
+                  </div>
+                  {item.imageCount && item.imageCount > 1 && (
+                    <div className="text-xs text-muted-foreground text-center mt-1">
+                      +{item.imageCount - 1} more image{item.imageCount - 1 !== 1 ? 's' : ''}
+                    </div>
+                  )}
+                </div>
+              )}
               
               <CardContent className="pb-4">
                 <div className="space-y-2">
@@ -205,9 +251,13 @@ export function ItemsGrid({ items, categories = [] }: ItemsGridProps) {
             item_purchases: viewingItem.item_purchases.map(p => ({
               purchase_price: p.purchase_price || null,
               purchase_date: p.purchase_date
-            }))
+            })),
+            images: viewingItem.images || [],
+            item_attributes: viewingItem.item_attributes || [],
+            documents: viewingItem.documents || []
           }}
           categories={categories}
+          onUpdate={onUpdate}
         />
       )}
       
@@ -237,6 +287,14 @@ export function ItemsGrid({ items, categories = [] }: ItemsGridProps) {
           }}
         />
       )}
+      
+      {/* Image Viewer */}
+      <ImageViewer
+        imageUrl={selectedImage?.url || ''}
+        alt={selectedImage?.alt}
+        isOpen={!!selectedImage}
+        onClose={() => setSelectedImage(null)}
+      />
     </>
   )
 }

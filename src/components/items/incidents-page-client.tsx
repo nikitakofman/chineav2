@@ -29,6 +29,13 @@ interface IncidentsPageClientProps {
         name: string
       } | null
     } | null
+    incident_images: Array<{
+      id: string
+      url: string
+      file_name: string
+      file_size: number | null
+      mime_type: string | null
+    }>
   }>
   categories?: Array<{
     id: string

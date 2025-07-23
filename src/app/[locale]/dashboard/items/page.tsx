@@ -50,6 +50,12 @@ export default async function ItemsPage() {
           created_at: 'desc'
         },
         take: 1
+      },
+      // Legacy item_documents removed - use centralized documents table query
+      item_attributes: {
+        include: {
+          field_definitions: true
+        }
       }
     },
     orderBy: {
@@ -57,18 +63,97 @@ export default async function ItemsPage() {
     }
   })
 
-  // Serialize Decimal values to numbers
-  const items = itemsRaw.map(item => ({
-    ...item,
-    item_purchases: item.item_purchases.map(purchase => ({
-      ...purchase,
-      purchase_price: purchase.purchase_price ? purchase.purchase_price.toNumber() : null
-    })),
-    item_sales: item.item_sales.map(sale => ({
-      ...sale,
-      sale_price: sale.sale_price ? sale.sale_price.toNumber() : null
-    }))
-  }))
+  // Get documents and images for all items using the centralized system
+  const itemIds = itemsRaw.map(item => item.id)
+  const documentsMap = new Map()
+  const imagesMap = new Map()
+  
+  if (itemIds.length > 0) {
+    // Get documents
+    const documents = await prisma.documents.findMany({
+      where: {
+        entity_type: 'item',
+        entity_id: { in: itemIds },
+        is_deleted: false
+      },
+      include: {
+        document_type: true
+      },
+      orderBy: {
+        created_at: 'desc'
+      }
+    })
+
+    // Group documents by item ID
+    documents.forEach(doc => {
+      if (!documentsMap.has(doc.entity_id)) {
+        documentsMap.set(doc.entity_id, [])
+      }
+      documentsMap.get(doc.entity_id).push(doc)
+    })
+    
+    // Get images for all items
+    const images = await prisma.images.findMany({
+      where: {
+        entity_type: 'item',
+        entity_id: { in: itemIds },
+        is_deleted: false
+      },
+      orderBy: [
+        { is_primary: 'desc' },
+        { position: 'asc' },
+        { created_at: 'asc' }
+      ]
+    })
+
+    // Group images by item ID
+    images.forEach(img => {
+      if (!imagesMap.has(img.entity_id)) {
+        imagesMap.set(img.entity_id, [])
+      }
+      imagesMap.get(img.entity_id).push({
+        id: img.id,
+        storage_url: img.storage_url,
+        original_name: img.original_name,
+        file_name: img.file_name,
+        file_size: img.file_size?.toString(),
+        mime_type: img.mime_type,
+        is_primary: img.is_primary,
+        position: img.position,
+        title: img.title,
+        alt_text: img.alt_text,
+        width: img.width,
+        height: img.height
+      })
+    })
+  }
+
+  // Serialize Decimal values to numbers and add documents and images
+  const items = itemsRaw.map(item => {
+    const itemImages = imagesMap.get(item.id) || []
+    const primaryImage = itemImages.find(img => img.is_primary) || itemImages[0]
+    
+    return {
+      ...item,
+      documents: documentsMap.get(item.id) || [],
+      images: itemImages,
+      primaryImage: primaryImage ? {
+        id: primaryImage.id,
+        url: primaryImage.storage_url,
+        alt_text: primaryImage.alt_text,
+        title: primaryImage.title
+      } : null,
+      imageCount: itemImages.length,
+      item_purchases: item.item_purchases.map(purchase => ({
+        ...purchase,
+        purchase_price: purchase.purchase_price ? purchase.purchase_price.toNumber() : null
+      })),
+      item_sales: item.item_sales.map(sale => ({
+        ...sale,
+        sale_price: sale.sale_price ? sale.sale_price.toNumber() : null
+      }))
+    }
+  })
 
   // Get categories for filters
   const categories = await prisma.category.findMany({

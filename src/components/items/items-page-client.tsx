@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { ItemsHeader } from './items-header'
 import { ItemsTable } from './items-table'
 import { ItemsGrid } from './items-grid'
@@ -16,12 +17,17 @@ interface ItemsPageClientProps {
 }
 
 export function ItemsPageClient({ items, categories }: ItemsPageClientProps) {
+  const router = useRouter()
   const [showAddModal, setShowAddModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all') // eslint-disable-line @typescript-eslint/no-unused-vars
   const [view, setView] = useDefaultMobileView('list')
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
+
+  const handleUpdate = () => {
+    router.refresh()
+  }
 
   // Filter items based on search and filters
   const filteredItems = useMemo(() => {
@@ -77,9 +83,9 @@ export function ItemsPageClient({ items, categories }: ItemsPageClientProps) {
 
       <div className="mt-6">
         {view === 'list' ? (
-          <ItemsTable items={filteredItems} categories={categories} />
+          <ItemsTable items={filteredItems} categories={categories} onUpdate={handleUpdate} />
         ) : (
-          <ItemsGrid items={filteredItems} categories={categories} />
+          <ItemsGrid items={filteredItems} categories={categories} onUpdate={handleUpdate} />
         )}
       </div>
 

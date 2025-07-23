@@ -26,7 +26,7 @@ export default async function IncidentsPage() {
   }
 
   // Fetch incidents for items in the selected book
-  const incidents = await prisma.item_incidents.findMany({
+  const incidentsRaw = await prisma.item_incidents.findMany({
     where: {
       items: {
         book_id: selectedBookId
@@ -41,6 +41,64 @@ export default async function IncidentsPage() {
     },
     orderBy: {
       incident_date: 'desc'
+    }
+  })
+
+  // Get images for all incidents using the centralized system
+  const incidentIds = incidentsRaw.map(incident => incident.id)
+  const imagesMap = new Map()
+  
+  if (incidentIds.length > 0) {
+    const images = await prisma.images.findMany({
+      where: {
+        entity_type: 'incident',
+        entity_id: { in: incidentIds },
+        is_deleted: false
+      },
+      orderBy: [
+        { is_primary: 'desc' },
+        { position: 'asc' },
+        { created_at: 'asc' }
+      ]
+    })
+
+    // Group images by incident ID
+    images.forEach(img => {
+      if (!imagesMap.has(img.entity_id)) {
+        imagesMap.set(img.entity_id, [])
+      }
+      imagesMap.get(img.entity_id).push({
+        id: img.id,
+        storage_url: img.storage_url,
+        original_name: img.original_name,
+        file_name: img.file_name,
+        file_size: img.file_size?.toString(),
+        mime_type: img.mime_type,
+        is_primary: img.is_primary,
+        position: img.position,
+        title: img.title,
+        alt_text: img.alt_text,
+        width: img.width,
+        height: img.height
+      })
+    })
+  }
+
+  // Add images to incidents
+  const incidents = incidentsRaw.map(incident => {
+    const incidentImages = imagesMap.get(incident.id) || []
+    const primaryImage = incidentImages.find(img => img.is_primary) || incidentImages[0]
+    
+    return {
+      ...incident,
+      images: incidentImages,
+      primaryImage: primaryImage ? {
+        id: primaryImage.id,
+        url: primaryImage.storage_url,
+        alt_text: primaryImage.alt_text,
+        title: primaryImage.title
+      } : null,
+      imageCount: incidentImages.length
     }
   })
 

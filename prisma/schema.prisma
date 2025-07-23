@@ -90,33 +90,93 @@ model costs_event_type {
   users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
-model document_type {
-  id         String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  name       String      @db.VarChar(100)
-  created_at DateTime?   @default(now()) @db.Timestamptz(6)
-  updated_at DateTime?   @default(now()) @db.Timestamptz(6)
-  documents  documents[]
+// Centralized document type management
+model document_types {
+  id          String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String      @unique @db.VarChar(100) // "item", "incident", "user", "person", "book", etc.
+  description String?
+  created_at  DateTime?   @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime?   @default(now()) @db.Timestamptz(6)
+  documents   documents[]
+
+  @@index([name], map: "idx_document_types_name")
 }
 
+// Centralized documents table with polymorphic relationships
 model documents {
-  id               String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  document_type_id String?        @db.Uuid
-  item_id          String?        @db.Uuid
-  person_id        String?        @db.Uuid
-  title            String         @db.VarChar(255)
-  file             String?        @db.VarChar(500)
+  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  document_type_id String    @db.Uuid
+  entity_type      String    @db.VarChar(50) // "item", "incident", "user", "person", "book", etc.
+  entity_id        String    @db.Uuid // UUID of the related entity
+  title            String    @db.VarChar(255)
+  original_name    String    @db.VarChar(255) // Original filename
+  file_name        String    @db.VarChar(255) // Stored filename
+  file_path        String    @db.VarChar(500) // Storage path
+  file_size        BigInt? // File size in bytes
+  mime_type        String?   @db.VarChar(100)
+  storage_provider String?   @db.VarChar(50) // "s3", "local", "supabase", etc.
+  storage_url      String?   @db.VarChar(500) // Public URL if available
   description      String?
-  issued_by        String?        @db.VarChar(255)
-  issued_date      DateTime?      @db.Date
-  document_number  String?        @db.VarChar(100)
-  expiry_date      DateTime?      @db.Date
-  created_at       DateTime?      @default(now()) @db.Timestamptz(6)
-  updated_at       DateTime?      @default(now()) @db.Timestamptz(6)
-  document_type    document_type? @relation(fields: [document_type_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
-  person           person?        @relation(fields: [person_id], references: [id], onUpdate: NoAction)
-  items            items?         @relation(fields: [item_id], references: [id], onUpdate: NoAction, map: "fk_documents_item_id")
+  issued_by        String?   @db.VarChar(255)
+  issued_date      DateTime? @db.Date
+  document_number  String?   @db.VarChar(100)
+  expiry_date      DateTime? @db.Date
+  is_deleted       Boolean   @default(false) // Soft delete
+  deleted_at       DateTime? @db.Timestamptz(6)
+  created_at       DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime? @default(now()) @db.Timestamptz(6)
 
-  @@index([item_id], map: "idx_documents_item_id")
+  document_type document_types @relation(fields: [document_type_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([document_type_id], map: "idx_documents_type_id")
+  @@index([entity_type, entity_id], map: "idx_documents_entity")
+  @@index([is_deleted], map: "idx_documents_deleted")
+  @@index([expiry_date], map: "idx_documents_expiry")
+}
+
+// Centralized image type management
+model image_types {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name        String    @unique @db.VarChar(100) // "item", "incident", "profile", "document_preview", etc.
+  description String?
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime? @default(now()) @db.Timestamptz(6)
+  images      images[]
+
+  @@index([name], map: "idx_image_types_name")
+}
+
+// Centralized images table with polymorphic relationships
+model images {
+  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  image_type_id    String    @db.Uuid
+  entity_type      String    @db.VarChar(50) // "item", "incident", "user", "person", etc.
+  entity_id        String    @db.Uuid // UUID of the related entity
+  title            String?   @db.VarChar(255)
+  original_name    String    @db.VarChar(255) // Original filename
+  file_name        String    @db.VarChar(255) // Stored filename
+  file_path        String    @db.VarChar(500) // Storage path
+  file_size        BigInt? // File size in bytes
+  mime_type        String?   @db.VarChar(100)
+  storage_provider String?   @db.VarChar(50) // "s3", "local", "supabase", etc.
+  storage_url      String?   @db.VarChar(500) // Public URL if available
+  width            Int? // Image width in pixels
+  height           Int? // Image height in pixels
+  alt_text         String?   @db.VarChar(500) // Accessibility alt text
+  is_primary       Boolean   @default(false) // Primary image for entity
+  position         Int?      @default(0) // Display order
+  is_deleted       Boolean   @default(false) // Soft delete
+  deleted_at       DateTime? @db.Timestamptz(6)
+  created_at       DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime? @default(now()) @db.Timestamptz(6)
+
+  image_type image_types @relation(fields: [image_type_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([image_type_id], map: "idx_images_type_id")
+  @@index([entity_type, entity_id], map: "idx_images_entity")
+  @@index([is_deleted], map: "idx_images_deleted")
+  @@index([is_primary], map: "idx_images_primary")
+  @@index([position], map: "idx_images_position")
 }
 
 model field_definitions {
@@ -148,16 +208,17 @@ model item_attributes {
 }
 
 model item_incidents {
-  id                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  item_id           String?   @db.Uuid
-  incident_type     String?   @db.VarChar(100)
+  id                String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  item_id           String?           @db.Uuid
+  incident_type     String?           @db.VarChar(100)
   description       String?
-  incident_date     DateTime? @db.Date
-  reported_by       String?   @db.VarChar(255)
-  resolution_status String?   @default("open") @db.VarChar(50)
-  created_at        DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at        DateTime? @default(now()) @db.Timestamptz(6)
-  items             items?    @relation(fields: [item_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  incident_date     DateTime?         @db.Date
+  reported_by       String?           @db.VarChar(255)
+  resolution_status String?           @default("open") @db.VarChar(50)
+  created_at        DateTime?         @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime?         @default(now()) @db.Timestamptz(6)
+  items             items?            @relation(fields: [item_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  incident_images   incident_images[]
 
   @@index([item_id], map: "idx_item_incidents_item_id")
 }
@@ -217,12 +278,14 @@ model items {
   grade           String?           @db.VarChar(50)
   created_at      DateTime?         @default(now()) @db.Timestamptz(6)
   updated_at      DateTime?         @default(now()) @db.Timestamptz(6)
-  documents       documents[]
   item_attributes item_attributes[]
   item_incidents  item_incidents[]
   item_locations  item_locations[]
   item_purchases  item_purchases[]
   item_sales      item_sales[]
+  // Legacy tables - to be migrated to centralized system
+  item_images     item_images[]
+  item_documents  item_documents[]
   book            book?             @relation(fields: [book_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   category        category?         @relation(fields: [category_id], references: [id], onUpdate: NoAction)
 
@@ -258,7 +321,6 @@ model person {
   specialization String?          @db.VarChar(255)
   created_at     DateTime?        @default(now()) @db.Timestamptz(6)
   updated_at     DateTime?        @default(now()) @db.Timestamptz(6)
-  documents      documents[]
   item_purchases item_purchases[]
   item_sales     item_sales[]
   person_type    person_type?     @relation(fields: [person_type_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
@@ -314,4 +376,57 @@ model subscriptions {
   @@index([user_id], map: "idx_subscriptions_user_id")
   @@index([stripe_customer_id], map: "idx_subscriptions_stripe_customer_id")
   @@index([status], map: "idx_subscriptions_status")
+}
+
+// LEGACY TABLE - TO BE MIGRATED TO CENTRALIZED images TABLE
+// This table should be migrated to use the new centralized images table with entity_type = "item"
+model item_images {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  item_id    String    @db.Uuid
+  url        String    @db.VarChar(500)
+  file_path  String    @db.VarChar(500)
+  file_name  String    @db.VarChar(255)
+  file_size  Int?
+  mime_type  String?   @db.VarChar(100)
+  is_primary Boolean?  @default(false)
+  position   Int?      @default(0)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  items      items     @relation(fields: [item_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([item_id], map: "idx_item_images_item_id")
+}
+
+// LEGACY TABLE - TO BE MIGRATED TO CENTRALIZED documents TABLE
+// This table should be migrated to use the new centralized documents table with entity_type = "item"
+model item_documents {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  item_id    String    @db.Uuid
+  url        String    @db.VarChar(500)
+  file_path  String    @db.VarChar(500)
+  file_name  String    @db.VarChar(255)
+  file_size  Int?
+  mime_type  String?   @db.VarChar(100)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  items      items     @relation(fields: [item_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([item_id], map: "idx_item_documents_item_id")
+}
+
+// LEGACY TABLE - TO BE MIGRATED TO CENTRALIZED images TABLE
+// This table should be migrated to use the new centralized images table with entity_type = "incident"
+model incident_images {
+  id             String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  incident_id    String         @db.Uuid
+  url            String         @db.VarChar(500)
+  file_path      String         @db.VarChar(500)
+  file_name      String         @db.VarChar(255)
+  file_size      Int?
+  mime_type      String?        @db.VarChar(100)
+  created_at     DateTime?      @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime?      @default(now()) @db.Timestamptz(6)
+  item_incidents item_incidents @relation(fields: [incident_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([incident_id], map: "idx_incident_images_incident_id")
 }

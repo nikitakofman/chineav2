@@ -50,14 +50,43 @@ interface SoldItemsTableProps {
       location_type: string | null
       location_details: string | null
     }>
+    item_images: Array<{
+      id: string
+      url: string
+      file_name: string
+      is_primary: boolean | null
+    }>
+    item_attributes: Array<{
+      id: string
+      field_definition_id: string
+      value: string | null
+    }>
+    documents: Array<{
+      id: string
+      title: string
+      original_name: string
+      file_name: string
+      file_path: string
+      file_size: bigint | null
+      mime_type: string | null
+      storage_url: string | null
+      description: string | null
+      document_type: {
+        id: string
+        name: string
+        description: string | null
+      } | null
+      created_at: Date | null
+    }>
   }>
   categories?: Array<{
     id: string
     name: string
   }>
+  onUpdate?: () => void
 }
 
-export function SoldItemsTable({ items, categories = [] }: SoldItemsTableProps) {
+export function SoldItemsTable({ items, categories = [], onUpdate }: SoldItemsTableProps) {
   const [viewingItem, setViewingItem] = useState<(typeof items)[0] | null>(null)
   const t = useTranslations()
   const locale = useLocale()
@@ -94,6 +123,7 @@ export function SoldItemsTable({ items, categories = [] }: SoldItemsTableProps) 
         <Table className="min-w-[1000px]">
         <TableHeader>
           <TableRow>
+            <TableHead className="w-[60px] text-muted-foreground">Image</TableHead>
             <TableHead className="text-muted-foreground">{t('items.itemNumber')}</TableHead>
             <TableHead className="text-muted-foreground">{t('items.description')}</TableHead>
             <TableHead className="text-muted-foreground">{t('items.category')}</TableHead>
@@ -113,6 +143,24 @@ export function SoldItemsTable({ items, categories = [] }: SoldItemsTableProps) 
 
             return (
               <TableRow key={item.id}>
+                <TableCell>
+                  {item.item_images && item.item_images.length > 0 ? (
+                    <div className="w-10 h-10 bg-muted rounded overflow-hidden">
+                      <img
+                        src={item.item_images[0].url}
+                        alt={item.item_images[0].file_name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = '/placeholder-image.png'
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
+                      <span className="text-xs text-muted-foreground">-</span>
+                    </div>
+                  )}
+                </TableCell>
                 <TableCell className="font-medium">
                   {item.item_number || '-'}
                 </TableCell>
@@ -180,9 +228,13 @@ export function SoldItemsTable({ items, categories = [] }: SoldItemsTableProps) 
             item_purchases: viewingItem.item_purchases.map(p => ({
               purchase_price: p.purchase_price || null,
               purchase_date: p.purchase_date
-            }))
+            })),
+            item_images: viewingItem.item_images,
+            item_attributes: viewingItem.item_attributes,
+            documents: viewingItem.documents
           }}
           categories={categories}
+          onUpdate={onUpdate}
         />
       )}
     </div>

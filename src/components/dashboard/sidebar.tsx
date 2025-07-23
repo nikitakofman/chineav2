@@ -16,6 +16,7 @@ import {
   AlertTriangle,
   Archive,
   CreditCard,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -209,6 +210,22 @@ export function DashboardSidebar({ categories }: DashboardSidebarProps) {
           >
             <DollarSign className="w-5 h-5" />
             <span className="font-medium">{t("costs")}</span>
+          </Link>
+          
+          {/* Control Item */}
+          <Link
+            href="/dashboard/control"
+            onClick={handleNavigation}
+            className={cn(
+              "flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors",
+              pathname === "/dashboard/control" ||
+                pathname.startsWith("/dashboard/control")
+                ? "text-primary bg-primary/10"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+          >
+            <Shield className="w-5 h-5" />
+            <span className="font-medium">{t("control")}</span>
           </Link>
 
           <Separator className="my-4" />

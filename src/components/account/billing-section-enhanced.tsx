@@ -199,13 +199,20 @@ export default function BillingSectionEnhanced({
                   <p className="text-sm text-muted-foreground">€23.98{locale === 'fr' ? '/mois' : '/month'}</p>
                 </div>
                 <Badge 
-                  variant={subscription.status === 'active' ? 'default' : subscription.status === 'canceled' ? 'secondary' : 'destructive'}
+                  variant={
+                    subscription.status === 'active' && subscription.cancel_at ? 'secondary' :
+                    subscription.status === 'active' ? 'default' : 
+                    subscription.status === 'canceled' ? 'secondary' : 'destructive'
+                  }
                   className={
+                    subscription.status === 'active' && subscription.cancel_at ? 'bg-orange-500 hover:bg-orange-600 text-white' :
                     subscription.status === 'active' ? 'bg-green-500 hover:bg-green-600' :
                     subscription.status === 'canceled' ? '' : 'bg-orange-500 hover:bg-orange-600'
                   }
                 >
-                  {subscription.status === 'active' 
+                  {subscription.status === 'active' && subscription.cancel_at
+                    ? (locale === 'fr' ? 'Expire bientôt' : 'Expires Soon')
+                    : subscription.status === 'active' 
                     ? (locale === 'fr' ? 'Actif' : 'Active')
                     : subscription.status === 'canceled'
                     ? (locale === 'fr' ? 'Annulé' : 'Canceled')
@@ -213,6 +220,18 @@ export default function BillingSectionEnhanced({
                   }
                 </Badge>
               </div>
+
+              {subscription.status === 'active' && subscription.cancel_at && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    {locale === 'fr' 
+                      ? `Votre abonnement est annulé et expirera le ${formatDate(new Date(subscription.cancel_at).getTime() / 1000)}.`
+                      : `Your subscription is canceled and will expire on ${formatDate(new Date(subscription.cancel_at).getTime() / 1000)}.`
+                    }
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {subscription.status === 'past_due' && (
                 <Alert>
@@ -226,19 +245,7 @@ export default function BillingSectionEnhanced({
                 </Alert>
               )}
               
-              {subscription.status === 'canceled' && subscription.cancel_at && new Date(subscription.cancel_at) > new Date() && (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    {locale === 'fr' 
-                      ? `Votre abonnement est annulé et se terminera le ${formatDate(new Date(subscription.cancel_at).getTime() / 1000)}.`
-                      : `Your subscription is canceled and will end on ${formatDate(new Date(subscription.cancel_at).getTime() / 1000)}.`
-                    }
-                  </AlertDescription>
-                </Alert>
-              )}
-              
-              {subscription.status === 'canceled' && (!subscription.cancel_at || new Date(subscription.cancel_at) <= new Date()) && (
+              {subscription.status === 'canceled' && (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
@@ -264,9 +271,17 @@ export default function BillingSectionEnhanced({
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium">{locale === 'fr' ? 'Prochaine facturation' : 'Next billing'}</p>
+                    <p className="text-sm font-medium">
+                      {subscription.cancel_at 
+                        ? (locale === 'fr' ? 'Expire le' : 'Expires on')
+                        : (locale === 'fr' ? 'Prochaine facturation' : 'Next billing')
+                      }
+                    </p>
                     <p className="text-sm text-muted-foreground">
-                      {nextBillingDate ? formatDate(nextBillingDate.getTime() / 1000) : '-'}
+                      {subscription.cancel_at 
+                        ? formatDate(new Date(subscription.cancel_at).getTime() / 1000)
+                        : nextBillingDate ? formatDate(nextBillingDate.getTime() / 1000) : '-'
+                      }
                     </p>
                   </div>
                 </div>

@@ -41,14 +41,21 @@ interface SoldItemsGridProps {
       location_type: string | null
       location_details: string | null
     }>
+    item_images: Array<{
+      id: string
+      url: string
+      file_name: string
+      is_primary: boolean | null
+    }>
   }>
   categories?: Array<{
     id: string
     name: string
   }>
+  onUpdate?: () => void
 }
 
-export function SoldItemsGrid({ items }: SoldItemsGridProps) {
+export function SoldItemsGrid({ items, onUpdate }: SoldItemsGridProps) {
   const t = useTranslations()
   const locale = useLocale()
   const dateLocale = locale === 'fr' ? fr : enUS
@@ -101,6 +108,22 @@ export function SoldItemsGrid({ items }: SoldItemsGridProps) {
                 </div>
               </div>
             </CardHeader>
+            
+            {/* Image Preview */}
+            {item.item_images && item.item_images.length > 0 && (
+              <div className="px-6 pb-4">
+                <div className="w-full h-32 bg-muted rounded-md overflow-hidden">
+                  <img
+                    src={item.item_images[0].url}
+                    alt={item.item_images[0].file_name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = '/placeholder-image.png'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
             
             <CardContent className="pb-4">
               <div className="space-y-2">

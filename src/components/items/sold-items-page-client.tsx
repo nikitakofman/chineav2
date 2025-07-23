@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { SoldHeader } from './sold-header'
 import { SoldItemsTable } from './sold-items-table'
@@ -52,12 +53,17 @@ interface SoldItemsPageClientProps {
 }
 
 export function SoldItemsPageClient({ items, categories = [] }: SoldItemsPageClientProps) {
+  const router = useRouter()
   const t = useTranslations()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [showAddModal, setShowAddModal] = useState(false)
   const [view, setView] = useDefaultMobileView('list')
   const [dateRange, setDateRange] = useState<DateRange | undefined>()
+
+  const handleUpdate = () => {
+    router.refresh()
+  }
 
   // Filter items based on search and filters
   const filteredItems = useMemo(() => {
@@ -109,8 +115,8 @@ export function SoldItemsPageClient({ items, categories = [] }: SoldItemsPageCli
       
       <ViewContainer className="mt-6" view={view} onViewChange={setView} showToggle={false}>
         {{
-          list: <SoldItemsTable items={filteredItems} categories={categories} />,
-          grid: <SoldItemsGrid items={filteredItems} categories={categories} />
+          list: <SoldItemsTable items={filteredItems} categories={categories} onUpdate={handleUpdate} />,
+          grid: <SoldItemsGrid items={filteredItems} categories={categories} onUpdate={handleUpdate} />
         }}
       </ViewContainer>
       

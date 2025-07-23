@@ -12,13 +12,9 @@ export function NotificationSettings() {
   const t = useTranslations('account')
   const [loading, setLoading] = useState(false)
   const [settings, setSettings] = useState({
-    emailNotifications: true,
-    itemUpdates: true,
-    salesAlerts: true,
-    incidentAlerts: true,
-    weeklyReport: false,
-    monthlyReport: true,
-    promotions: false
+    general: true,
+    offers: false,
+    updates: true
   })
 
   const handleSave = async () => {
@@ -42,39 +38,19 @@ export function NotificationSettings() {
 
   const notificationOptions = [
     {
-      id: 'emailNotifications',
-      label: t('emailNotifications'),
-      description: t('emailNotificationsDesc')
+      id: 'general',
+      label: t('general'),
+      description: t('generalDesc')
     },
     {
-      id: 'itemUpdates',
-      label: t('itemUpdates'),
-      description: t('itemUpdatesDesc')
+      id: 'offers',
+      label: t('offers'),
+      description: t('offersDesc')
     },
     {
-      id: 'salesAlerts',
-      label: t('salesAlerts'),
-      description: t('salesAlertsDesc')
-    },
-    {
-      id: 'incidentAlerts',
-      label: t('incidentAlerts'),
-      description: t('incidentAlertsDesc')
-    },
-    {
-      id: 'weeklyReport',
-      label: t('weeklyReport'),
-      description: t('weeklyReportDesc')
-    },
-    {
-      id: 'monthlyReport',
-      label: t('monthlyReport'),
-      description: t('monthlyReportDesc')
-    },
-    {
-      id: 'promotions',
-      label: t('promotions'),
-      description: t('promotionsDesc')
+      id: 'updates',
+      label: t('updates'),
+      description: t('updatesDesc')
     }
   ]
 
