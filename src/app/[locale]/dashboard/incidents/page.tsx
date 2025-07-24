@@ -92,6 +92,7 @@ export default async function IncidentsPage() {
     return {
       ...incident,
       images: incidentImages,
+      centralizedImages: incidentImages, // Add this for UnifiedEntityModal compatibility
       primaryImage: primaryImage ? {
         id: primaryImage.id,
         url: primaryImage.storage_url,

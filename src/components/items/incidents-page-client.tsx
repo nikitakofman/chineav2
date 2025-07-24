@@ -3,8 +3,8 @@
 import { useState, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { IncidentsHeader } from './incidents-header'
-import { IncidentsTable } from './incidents-table'
-import { IncidentsGrid } from './incidents-grid'
+import { IncidentsTable } from '@/components/shared/table-configurations'
+import { IncidentsGrid } from '@/components/shared/grid-configurations'
 import { ViewToggle, ViewType } from '@/components/ui/view-toggle'
 import { useDefaultMobileView } from '@/hooks/use-default-mobile-view'
 import { SearchFilters } from '@/components/shared/search-filters'
@@ -36,6 +36,41 @@ interface IncidentsPageClientProps {
       file_size: number | null
       mime_type: string | null
     }>
+    images?: Array<{
+      id: string
+      storage_url: string
+      original_name: string
+      file_name: string
+      file_size: string | null
+      mime_type: string | null
+      is_primary: boolean | null
+      position: number | null
+      title: string | null
+      alt_text: string | null
+      width: number | null
+      height: number | null
+    }>
+    centralizedImages?: Array<{
+      id: string
+      storage_url: string
+      original_name: string
+      file_name: string
+      file_size: string | null
+      mime_type: string | null
+      is_primary: boolean | null
+      position: number | null
+      title: string | null
+      alt_text: string | null
+      width: number | null
+      height: number | null
+    }>
+    primaryImage?: {
+      id: string
+      url: string
+      alt_text?: string | null
+      title?: string | null
+    } | null
+    imageCount?: number
   }>
   categories?: Array<{
     id: string

@@ -29,7 +29,8 @@ import {
 } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { AddCategoryModal } from '@/components/categories/add-category-modal'
+import { GenericCrudModal } from '@/components/shared/generic-crud-modal'
+import { FieldConfig } from '@/types/form-types'
 import { FileUploadItem } from '@/components/ui/file-upload'
 import { uploadMultipleFiles } from '@/lib/storage'
 import { 
@@ -540,7 +541,7 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
           iconColor: 'text-white',
           iconBgColor: 'p-2 bg-green-500 text-white rounded-lg',
           getTitle: () => t('items.markAsSold'),
-          getDescription: () => t('items.saleDescription', 'Record the sale information for this item')
+          getDescription: () => t('items.saleDescription')
         }
       
       default:
@@ -638,7 +639,7 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
             id: img.id,
             url: img.storage_url || '',
             file_name: img.original_name,
-            file_size: img.file_size ? parseInt(img.file_size) : null,
+            file_size: img.file_size ? parseInt(img.file_size.toString()) : null,
             mime_type: img.mime_type,
             title: img.title,
             alt_text: img.alt_text,
@@ -704,7 +705,7 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
             id: img.id,
             url: img.storage_url || '',
             file_name: img.original_name,
-            file_size: img.file_size ? parseInt(img.file_size) : null,
+            file_size: img.file_size ? parseInt(img.file_size.toString()) : null,
             mime_type: img.mime_type,
             title: img.title,
             alt_text: img.alt_text,
@@ -1955,7 +1956,7 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>{t('items.itemInformation', 'Item Information')}</CardTitle>
+              <CardTitle>{t('items.itemInformation')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -1997,7 +1998,7 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>{t('items.saleInformation', 'Sale Information')}</CardTitle>
+              <CardTitle>{t('items.saleInformation')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -2025,7 +2026,7 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="client_id">{t('items.client', 'Client')}</Label>
+                <Label htmlFor="client_id">{t('items.client')}</Label>
                 {loadingClients ? (
                   <div className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -2036,7 +2037,7 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
                 ) : (
                   <Select name="client_id">
                     <SelectTrigger>
-                      <SelectValue placeholder={t('items.selectClient', 'Select a client (optional)')} />
+                      <SelectValue placeholder={t('items.selectClient')} />
                     </SelectTrigger>
                     <SelectContent>
                       {clients.map((client) => (
@@ -2050,27 +2051,27 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="payment_method">{t('items.paymentMethod', 'Payment Method')}</Label>
+                <Label htmlFor="payment_method">{t('items.paymentMethod')}</Label>
                 <Select name="payment_method">
                   <SelectTrigger>
-                    <SelectValue placeholder={t('items.selectPaymentMethod', 'Select payment method (optional)')} />
+                    <SelectValue placeholder={t('items.selectPaymentMethod')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cash">{t('items.cash', 'Cash')}</SelectItem>
-                    <SelectItem value="card">{t('items.card', 'Card')}</SelectItem>
-                    <SelectItem value="check">{t('items.check', 'Check')}</SelectItem>
-                    <SelectItem value="bank_transfer">{t('items.bankTransfer', 'Bank Transfer')}</SelectItem>
-                    <SelectItem value="other">{t('items.other', 'Other')}</SelectItem>
+                    <SelectItem value="cash">{t('items.cash')}</SelectItem>
+                    <SelectItem value="card">{t('items.card')}</SelectItem>
+                    <SelectItem value="check">{t('items.check')}</SelectItem>
+                    <SelectItem value="bank_transfer">{t('items.bankTransfer')}</SelectItem>
+                    <SelectItem value="other">{t('items.other')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="sale_location">{t('items.saleLocationLabel', 'Sale Location')}</Label>
+                <Label htmlFor="sale_location">{t('items.saleLocationLabel')}</Label>
                 <Input
                   id="sale_location"
                   name="sale_location"
-                  placeholder={t('items.saleLocationPlaceholder', 'e.g., Store, Online, Fair')}
+                  placeholder={t('items.saleLocationPlaceholder')}
                 />
               </div>
             </CardContent>
@@ -2288,7 +2289,7 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
                         : props.entityType === 'item'
                           ? effectiveMode === 'create' ? t('items.createItem') : t('items.updateItem')
                           : props.entityType === 'sale'
-                            ? t('items.recordSale', 'Record Sale')
+                            ? t('items.recordSale')
                             : 'Submit'
                     }
                   </Button>
@@ -2314,10 +2315,50 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
       
       {/* Category Modal - renders on top */}
       {props.entityType === 'item' && (
-        <AddCategoryModal
+        <GenericCrudModal
           open={showCategoryModal}
           onOpenChange={setShowCategoryModal}
-          onCategoryCreated={handleCategoryCreated}
+          config={{
+            mode: 'create',
+            title: t('categories.addNewCategory'),
+            description: t('categories.addCategoryDescription'),
+            submitLabel: t('categories.createCategory'),
+            loadingLabel: t('common.creating'),
+            fields: [
+              {
+                name: 'name',
+                label: t('categories.categoryName'),
+                type: 'text',
+                placeholder: t('categories.categoryNamePlaceholder'),
+                required: true
+              },
+              {
+                name: 'description',
+                label: t('categories.description'),
+                type: 'textarea',
+                placeholder: t('categories.descriptionPlaceholder'),
+                required: false
+              }
+            ]
+          }}
+          onSubmit={async (data) => {
+            try {
+              const { createCategory } = await import('@/app/actions/categories')
+              const result = await createCategory(data.name)
+              if (result.error) {
+                return { error: result.error }
+              }
+              if (result.category) {
+                handleCategoryCreated(result.category)
+                toast.success(t('categories.createCategory') + ' ' + t('common.success'))
+                return { success: true, data: result.category }
+              }
+              return { error: 'Failed to create category' }
+            } catch (error) {
+              toast.error(t('common.error'))
+              return { error: t('common.error') }
+            }
+          }}
         />
       )}
       
