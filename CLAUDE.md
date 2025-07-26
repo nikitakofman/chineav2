@@ -5,15 +5,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ### Development
+
 - `npm run dev` - Start the development server at http://localhost:3000
 - `npm run build` - Build the application for production
 - `npm run start` - Run the production build locally
 - `npm run lint` - Run ESLint to check code quality
 
 ### Installation
-- `npm install` - Install all dependencies
+
+- `npm install` - Install all dependencies2
 
 ### Database (Prisma)
+
 - `npx prisma generate` - Generate Prisma Client
 - `npx prisma db pull` - Pull database schema from Supabase
 - `npx prisma db push` - Push schema changes to database
@@ -25,6 +28,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is a Next.js 15.4.2 application using the App Router architecture with TypeScript and Tailwind CSS v4.
 
 ### Key Technologies
+
 - **Next.js 15.4.2** - React framework with App Router
 - **React 19.1.0** - UI library
 - **TypeScript** - Type safety with strict mode enabled
@@ -36,6 +40,7 @@ This is a Next.js 15.4.2 application using the App Router architecture with Type
 - **next-themes** - Dark/light mode theme management
 
 ### Project Structure
+
 - `src/app/` - App Router pages and layouts
   - `layout.tsx` - Root layout with Geist fonts
   - `page.tsx` - Page components
@@ -54,6 +59,7 @@ This is a Next.js 15.4.2 application using the App Router architecture with Type
 - Path alias: `@/*` maps to `./src/*`
 
 ### Styling Approach
+
 - Tailwind CSS v4 configured via PostCSS (no traditional config file)
 - CSS custom properties for theming
 - Dark mode support via `prefers-color-scheme` media query
@@ -62,20 +68,25 @@ This is a Next.js 15.4.2 application using the App Router architecture with Type
 - Uses `cn()` utility for conditional className merging
 
 ### Database Setup
+
 - **Supabase PostgreSQL** database configured
 - **Prisma ORM** for type-safe database access
 - Connection pooling via Supabase pooler (pgbouncer)
 - Direct connection available for migrations
 
 ### Environment Variables
+
 Required environment variables in `.env.local`:
+
 - `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` - Supabase anonymous/publishable key
 - `DATABASE_URL` - PostgreSQL connection string (pooled)
 - `DIRECT_URL` - PostgreSQL direct connection string
 
 ### UI Components (shadcn/ui)
+
 All 46 shadcn/ui components are installed, including:
+
 - Form components: Button, Input, Select, Checkbox, Radio, Switch, etc.
 - Layout components: Card, Dialog, Sheet, Tabs, Accordion, etc.
 - Navigation: Navigation Menu, Dropdown Menu, Command, etc.
@@ -84,6 +95,7 @@ All 46 shadcn/ui components are installed, including:
 - Advanced: Calendar, Carousel, Resizable Panels, etc.
 
 ### Important Notes
+
 - Currently no testing framework is configured
 - Prisma client generates to default location (node_modules/@prisma/client)
 - Both Supabase client and Prisma can be used for database access
