@@ -25,46 +25,60 @@ export default async function SoldItemsPage() {
     redirect('/books/setup')
   }
 
-  // Fetch items for the selected book (only sold items - have sales)
-  const itemsRaw = await prisma.items.findMany({
+  // Fetch invoices with their associated items
+  const invoicesRaw = await prisma.invoices.findMany({
     where: {
-      book_id: selectedBookId,
-      item_sales: {
-        some: {}
-      }
+      book_id: selectedBookId
     },
     include: {
-      category: true,
-      item_purchases: {
-        include: {
-          person: true
-        }
-      },
+      client: true,
       item_sales: {
         include: {
-          person: true
-        },
-        orderBy: {
-          sale_date: 'desc'
-        }
-      },
-      item_locations: {
-        orderBy: {
-          created_at: 'desc'
-        },
-        take: 1
-      },
-      // Legacy item_documents removed - use centralized documents table query
-      item_attributes: {
-        include: {
-          field_definitions: true
+          items: {
+            include: {
+              category: true,
+              item_purchases: {
+                include: {
+                  person: true
+                }
+              },
+              item_locations: {
+                orderBy: {
+                  created_at: 'desc'
+                },
+                take: 1
+              },
+              item_attributes: {
+                include: {
+                  field_definitions: true
+                }
+              }
+            }
+          }
         }
       }
     },
     orderBy: {
-      created_at: 'desc'
+      invoice_date: 'desc'
     }
   })
+
+  // Extract all items from invoices with serialized Decimal values
+  const itemsRaw = invoicesRaw.flatMap(invoice => 
+    invoice.item_sales.map(sale => ({
+      ...sale.items!,
+      item_sales: [{
+        ...sale,
+        sale_price: sale.sale_price ? sale.sale_price.toNumber() : null,
+        invoice_id: invoice.id,
+        person: invoice.client
+      }],
+      item_purchases: sale.items!.item_purchases.map(purchase => ({
+        ...purchase,
+        purchase_price: purchase.purchase_price ? purchase.purchase_price.toNumber() : null
+      }))
+    }))
+  )
 
   // Get documents and images for all items using the centralized system
   const itemIds = itemsRaw.map(item => item.id)
@@ -134,7 +148,11 @@ export default async function SoldItemsPage() {
   // Serialize Decimal values to numbers and add documents and images
   const items = itemsRaw.map(item => {
     const itemImages = imagesMap.get(item.id) || []
-    const primaryImage = itemImages.find(img => img.is_primary) || itemImages[0]
+    
+    // Find primary image: prioritize position 0, then is_primary flag, then first image
+    const primaryImage = itemImages.find(img => img.position === 0) || 
+                         itemImages.find(img => img.is_primary) || 
+                         itemImages[0]
     
     return {
       ...item,
@@ -147,14 +165,8 @@ export default async function SoldItemsPage() {
         title: primaryImage.title
       } : null,
       imageCount: itemImages.length,
-      item_purchases: item.item_purchases.map(purchase => ({
-        ...purchase,
-        purchase_price: purchase.purchase_price ? purchase.purchase_price.toNumber() : null
-      })),
-      item_sales: item.item_sales.map(sale => ({
-        ...sale,
-        sale_price: sale.sale_price ? sale.sale_price.toNumber() : null
-      }))
+      item_purchases: item.item_purchases,
+      item_sales: item.item_sales
     }
   })
 
@@ -168,9 +180,38 @@ export default async function SoldItemsPage() {
     }
   })
 
+  // Group items by invoice
+  const invoiceGroups = invoicesRaw.map(invoice => {
+    const invoiceItems = invoice.item_sales.map(sale => {
+      const item = items.find(i => i.id === sale.item_id)
+      return item ? {
+        ...item,
+        sale_price: sale.sale_price ? sale.sale_price.toNumber() : null,
+        sale_date: sale.sale_date,
+        sale_location: sale.sale_location,
+        payment_method: sale.payment_method,
+        // Item purchases are already serialized
+        item_purchases: item.item_purchases
+      } : null
+    }).filter(Boolean)
+
+    return {
+      id: invoice.id,
+      invoice_number: invoice.invoice_number,
+      invoice_date: invoice.invoice_date,
+      total_amount: invoice.total_amount ? invoice.total_amount.toNumber() : 0,
+      client: invoice.client,
+      items: invoiceItems
+    }
+  }).filter(group => group.items.length > 0)
+
   return (
     <div className="p-4 md:p-6">
-      <SoldItemsPageClient items={items} categories={categories} />
+      <SoldItemsPageClient 
+        items={items} 
+        categories={categories} 
+        invoiceGroups={invoiceGroups}
+      />
     </div>
   )
 }

@@ -28,28 +28,30 @@ export function LanguageSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon" className="min-h-[44px] min-w-[44px]">
-          <Globe className="h-[1.2rem] w-[1.2rem]" />
+        <Button variant="ghost" size="icon">
+          <Globe className="w-5 h-5" />
           <span className="sr-only">Change language</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[140px]">
-        {languages.map((lang) => (
-          <DropdownMenuItem
-            key={lang.code}
-            onClick={() => handleLanguageChange(lang.code)}
-            className={`cursor-pointer touch-manipulation min-h-[44px] flex items-center ${
-              locale === lang.code ? 'bg-accent font-medium' : ''
-            }`}
-          >
-            <div className="mr-2 h-4 w-4 flex items-center justify-center">
-              {locale === lang.code && (
-                <div className="h-2 w-2 bg-current rounded-full" />
-              )}
-            </div>
-            {lang.name}
-          </DropdownMenuItem>
-        ))}
+      <DropdownMenuContent align="end" className="min-w-[140px] p-2">
+        <div className="space-y-2">
+          {languages.map((lang) => (
+            <DropdownMenuItem
+              key={lang.code}
+              onClick={() => handleLanguageChange(lang.code)}
+              className={`cursor-pointer touch-manipulation min-h-[44px] flex items-center rounded-md transition-colors
+                hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground
+                ${locale === lang.code ? 'bg-primary text-primary-foreground font-medium' : ''}`}
+            >
+              <div className="mr-2 h-4 w-4 flex items-center justify-center">
+                {locale === lang.code && (
+                  <div className="h-2 w-2 bg-current rounded-full" />
+                )}
+              </div>
+              {lang.name}
+            </DropdownMenuItem>
+          ))}
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   )

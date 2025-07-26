@@ -4,11 +4,11 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { SoldHeader } from './sold-header'
-import { SoldItemsTable } from './sold-items-table'
-import { SoldItemsGrid } from './sold-items-grid'
+import { SoldItemsTable } from '@/components/shared/table-configurations'
+import { SoldItemsGrid } from '@/components/shared/grid-configurations'
 import { ViewContainer } from '@/components/ui/view-container'
 import { SearchFilters } from '@/components/shared/search-filters'
-import { AddItemModal } from './add-item-modal'
+import { AddItemModal } from '@/components/shared/modal-configurations'
 import { ViewToggle } from '@/components/ui/view-toggle'
 import { useDefaultMobileView } from '@/hooks/use-default-mobile-view'
 import { DateRange } from 'react-day-picker'
@@ -33,10 +33,12 @@ interface SoldItemsPageClientProps {
       } | null
     }>
     item_sales: Array<{
+      id: string
       sale_price: number | null
       sale_date: Date | null
       sale_location: string | null
       payment_method: string | null
+      invoice_id: string | null
       person: {
         name: string
       } | null
@@ -50,9 +52,21 @@ interface SoldItemsPageClientProps {
     id: string
     name: string
   }>
+  invoiceGroups?: Array<{
+    id: string
+    invoice_number: string
+    invoice_date: Date | null
+    total_amount: number
+    client: {
+      id: string
+      name: string
+      lastname: string | null
+    } | null
+    items: Array<any>
+  }>
 }
 
-export function SoldItemsPageClient({ items, categories = [] }: SoldItemsPageClientProps) {
+export function SoldItemsPageClient({ items, categories = [], invoiceGroups = [] }: SoldItemsPageClientProps) {
   const router = useRouter()
   const t = useTranslations()
   const [searchQuery, setSearchQuery] = useState('')
@@ -115,8 +129,17 @@ export function SoldItemsPageClient({ items, categories = [] }: SoldItemsPageCli
       
       <ViewContainer className="mt-6" view={view} onViewChange={setView} showToggle={false}>
         {{
-          list: <SoldItemsTable items={filteredItems} categories={categories} onUpdate={handleUpdate} />,
-          grid: <SoldItemsGrid items={filteredItems} categories={categories} onUpdate={handleUpdate} />
+          list: <SoldItemsTable 
+            items={filteredItems} 
+            categories={categories} 
+            invoiceGroups={invoiceGroups}
+            onUpdate={handleUpdate} 
+          />,
+          grid: <SoldItemsGrid 
+            items={filteredItems} 
+            categories={categories}
+            invoiceGroups={invoiceGroups}
+          />
         }}
       </ViewContainer>
       

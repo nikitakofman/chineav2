@@ -14,6 +14,7 @@ export async function PUT(request: Request) {
 
     const body = await request.json()
     const { itemId, imagePositions } = body
+    
 
     // Verify the item belongs to the user
     const item = await prisma.items.findFirst({

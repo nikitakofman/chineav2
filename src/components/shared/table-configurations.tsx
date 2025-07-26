@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { DataTable } from './data-table'
 import { 
@@ -16,7 +16,8 @@ import {
   createEditAction,
   createDeleteAction,
   createSellAction,
-  createIncidentAction
+  createIncidentAction,
+  createInvoiceAction
 } from './table-columns'
 import { 
   Plus, 
@@ -24,11 +25,14 @@ import {
   Package, 
   AlertTriangle, 
   DollarSign,
-  Tag
+  Tag,
+  FileDown
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 // Import modals
-import { AddItemModal, SaleModal, IncidentModal } from '@/components/shared/modal-configurations'
+import { MultiSaleModal, IncidentModal, AddItemModal } from '@/components/shared/modal-configurations'
+import { UnifiedEntityModal } from '@/components/modals/unified-entity-modal'
 import { useRouter } from 'next/navigation'
 
 // ============================================================================
@@ -130,9 +134,17 @@ interface Person {
   phone?: string | null
   address?: string | null
   created_at: string
+  invoices?: {
+    id: string
+    invoice_number: string
+    invoice_date: Date
+    total_amount: number
+    status: string
+  }[]
   _count?: {
     item_purchases: number
     item_sales: number
+    invoices: number
   }
 }
 
@@ -174,10 +186,12 @@ export function PeopleTable({ people, onEdit, onDelete }: PeopleTableProps) {
       (person) => {
         const purchases = person._count?.item_purchases || 0
         const sales = person._count?.item_sales || 0
+        const invoices = person._count?.invoices || 0
         return (
           <div className="text-sm">
             <div>{purchases} {t('people.purchases')}</div>
             <div>{sales} {t('people.sales')}</div>
+            <div>{invoices} {t('people.invoices')}</div>
           </div>
         )
       }
@@ -199,7 +213,8 @@ export function PeopleTable({ people, onEdit, onDelete }: PeopleTableProps) {
         disabled: (person) => {
           const hasTransactions = 
             (person._count?.item_purchases || 0) > 0 || 
-            (person._count?.item_sales || 0) > 0
+            (person._count?.item_sales || 0) > 0 ||
+            (person._count?.invoices || 0) > 0
           return hasTransactions
         },
         disabledTooltip: t('people.cannotDeleteWithTransactions')
@@ -213,7 +228,7 @@ export function PeopleTable({ people, onEdit, onDelete }: PeopleTableProps) {
       columns={columns}
       keyExtractor={(person) => person.id}
       actions={actions}
-      actionsDropdown={true}
+      actionsDropdown={false}
       locale={t('common.locale') as 'en' | 'fr'}
       emptyState={{
         icon: User,
@@ -372,47 +387,36 @@ export function ItemsTable({ items, categories, onUpdate }: ItemsTableProps) {
       />
       
       {viewingItem && (
-        <AddItemModal
+        <UnifiedEntityModal
           open={!!viewingItem}
           onOpenChange={(open) => {
             if (!open) {
               setViewingItem(null)
+              // Refresh the data after closing to reflect any image changes
+              onUpdate?.()
             }
           }}
-          categories={categories}
-          item={{
-            id: viewingItem.id,
-            itemNumber: viewingItem.item_number,
-            description: viewingItem.description || '',
-            categoryId: viewingItem.category?.id || null,
-            color: viewingItem.color || '',
-            grade: viewingItem.grade || '',
-            customFields: {},
-            purchase: {
-              sellerId: null,
-              purchasePrice: viewingItem.item_purchases?.[0]?.purchase_price?.toString(),
-              purchaseDate: viewingItem.item_purchases?.[0]?.purchase_date || null
-            },
-            sale: {
-              clientId: null,
-              salePrice: viewingItem.item_sales?.[0]?.sale_price?.toString(),
-              saleDate: viewingItem.item_sales?.[0]?.sale_date || null
-            },
-            images: viewingItem.images || []
-          }}
+          entityType="item"
           mode="view"
+          item={viewingItem as any}
+          categories={categories}
         />
       )}
       
       {sellingItem && (
-        <SaleModal
-          item={sellingItem}
+        <MultiSaleModal
+          initialItem={sellingItem}
+          availableItems={items}
           open={!!sellingItem}
           onOpenChange={(open: boolean) => {
             if (!open) {
               setSellingItem(null)
               onUpdate?.()
             }
+          }}
+          onSuccess={() => {
+            setSellingItem(null)
+            onUpdate?.()
           }}
         />
       )}
@@ -490,12 +494,31 @@ interface SoldItem {
 
 interface SoldItemsTableProps {
   items: SoldItem[]
+  invoiceGroups?: Array<{
+    id: string
+    invoice_number: string
+    invoice_date: Date | null
+    total_amount: number
+    client: {
+      id: string
+      name: string
+      lastname: string | null
+    } | null
+    items: Array<any>
+  }>
 }
 
-export function SoldItemsTable({ items }: SoldItemsTableProps) {
+export function SoldItemsTable({ items, invoiceGroups }: SoldItemsTableProps) {
   const t = useTranslations()
   const router = useRouter()
   const [viewingItem, setViewingItem] = useState<SoldItem | null>(null)
+
+  // Always show grouped view for sold items
+  if (invoiceGroups && invoiceGroups.length > 0) {
+    // Import the custom grouped table dynamically
+    const SoldItemsGroupedTable = require('@/components/items/sold-items-grouped-table').SoldItemsGroupedTable
+    return <SoldItemsGroupedTable invoiceGroups={invoiceGroups} />
+  }
 
   const columns = [
     createImageColumn<SoldItem>(
@@ -576,10 +599,50 @@ export function SoldItemsTable({ items }: SoldItemsTableProps) {
     ),
   ]
 
+  const handleDownloadInvoice = async (item: SoldItem) => {
+    try {
+      const saleId = item.item_sales[0]?.id
+      if (!saleId) {
+        console.error('No sale ID found for item')
+        return
+      }
+
+      const response = await fetch('/api/invoice', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          saleId: saleId,
+        }),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate invoice')
+      }
+      
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.style.display = 'none'
+      a.href = url
+      a.download = `invoice_${item.item_number || item.id}_${new Date().toISOString().split('T')[0]}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error downloading invoice:', error)
+    }
+  }
+
   const actions = [
     createViewAction<SoldItem>(
       (item) => setViewingItem(item),
       t('items.viewDetails')
+    ),
+    createInvoiceAction<SoldItem>(
+      (item) => handleDownloadInvoice(item),
+      t('items.downloadInvoice')
     ),
   ]
 
@@ -608,6 +671,7 @@ export function SoldItemsTable({ items }: SoldItemsTableProps) {
             itemNumber: viewingItem.item_number || '',
             description: viewingItem.description || '',
             categoryId: viewingItem.category?.id || null,
+            category: viewingItem.category || null,
             color: viewingItem.color || undefined,
             grade: viewingItem.grade || undefined,
             customFields: {},
@@ -619,20 +683,27 @@ export function SoldItemsTable({ items }: SoldItemsTableProps) {
             sale: viewingItem.item_sales[0] ? {
               clientId: viewingItem.item_sales[0].person?.id || null,
               salePrice: viewingItem.item_sales[0].sale_price?.toString() || undefined,
-              saleDate: viewingItem.item_sales[0].sale_date || null
+              saleDate: viewingItem.item_sales[0].sale_date || null,
+              saleLocation: viewingItem.item_sales[0].sale_location || undefined,
+              paymentMethod: viewingItem.item_sales[0].payment_method || undefined
             } : undefined,
             images: viewingItem.images?.map(img => ({
               id: img.id,
               url: img.storage_url,
-              file_name: img.storage_url.split('/').pop() || '',
-              file_size: null,
-              mime_type: null,
+              file_name: img.file_name,
+              file_size: Number(img.file_size) || null,
+              mime_type: img.mime_type,
               is_primary: img.is_primary
             })) || []
           }}
+          categories={[]}
           open={!!viewingItem}
           onOpenChange={(open) => {
-            if (!open) setViewingItem(null)
+            if (!open) {
+              setViewingItem(null)
+              // Refresh the data after closing to reflect any image changes
+              router.refresh()
+            }
           }}
         />
       )}
@@ -849,7 +920,7 @@ interface Cost {
 
 interface Book {
   id: string
-  reference: string
+  reference: string | null
 }
 
 interface CostsListProps {
@@ -879,11 +950,11 @@ export function CostsList({ costs, onEdit, onDelete }: CostsListProps) {
   }
 
   // Load books when component mounts
-  useState(() => {
+  useEffect(() => {
     if (costs.some(cost => cost.book)) {
       loadBooks()
     }
-  })
+  }, [costs])
 
   const columns = [
     createDateColumn<Cost>('date', t('costs.date'), { relative: false, format: 'PPP' }),
@@ -912,7 +983,7 @@ export function CostsList({ costs, onEdit, onDelete }: CostsListProps) {
       (cost) => {
         if (!cost.book) return '-'
         const book = books.find(b => b.id === cost.book!.id)
-        return book?.reference || cost.book.reference
+        return book?.reference || cost.book.reference || '-'
       }
     ),
   ]

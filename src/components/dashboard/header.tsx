@@ -1,8 +1,12 @@
 import { getBookTypes } from '@/app/actions/books'
 import { DashboardHeaderClient } from './header-client'
 
-export async function DashboardHeader() {
+interface DashboardHeaderProps {
+  unreadNotificationCount: number
+}
+
+export async function DashboardHeader({ unreadNotificationCount }: DashboardHeaderProps) {
   const bookTypes = await getBookTypes()
   
-  return <DashboardHeaderClient bookTypes={bookTypes} />
+  return <DashboardHeaderClient bookTypes={bookTypes} unreadNotificationCount={unreadNotificationCount} />
 }

@@ -131,7 +131,12 @@ export default async function ItemsPage() {
   // Serialize Decimal values to numbers and add documents and images
   const items = itemsRaw.map(item => {
     const itemImages = imagesMap.get(item.id) || []
-    const primaryImage = itemImages.find(img => img.is_primary) || itemImages[0]
+    
+    // Find primary image: prioritize position 0, then is_primary flag, then first image
+    const primaryImage = itemImages.find(img => img.position === 0) || 
+                         itemImages.find(img => img.is_primary) || 
+                         itemImages[0]
+    
     
     return {
       ...item,

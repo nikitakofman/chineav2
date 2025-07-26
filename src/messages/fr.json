@@ -11,6 +11,9 @@
     "success": "Succès",
     "cancel": "Annuler",
     "save": "Enregistrer",
+    "create": "Créer",
+    "update": "Mettre à jour",
+    "submit": "Soumettre",
     "delete": "Supprimer",
     "edit": "Modifier",
     "add": "Ajouter",
@@ -24,10 +27,40 @@
     "reset": "Réinitialiser",
     "preview": "Aperçu",
     "actions": "Actions",
+    "searchPlaceholder": "Rechercher...",
+    "selectAll": "Tout sélectionner",
+    "selected": "sélectionné(s)",
     "saving": "Enregistrement...",
+    "creating": "Création...",
     "deleting": "Suppression...",
     "listView": "Liste",
-    "gridView": "Grille"
+    "gridView": "Grille",
+    "locale": "fr",
+    "noData": "Aucune donnée",
+    "openMenu": "Ouvrir le menu",
+    "createdAt": "Créé",
+    "view": "Voir",
+    "fieldRequired": "Ce champ est requis"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "Aucune notification",
+    "loading": "Chargement...",
+    "markAllRead": "Tout marquer comme lu",
+    "viewAll": "Voir toutes les notifications",
+    "allNotifications": "Toutes les notifications",
+    "description": "Gérer et voir toutes vos notifications",
+    "all": "Toutes",
+    "unread": "Non lues",
+    "read": "Lues",
+    "noUnread": "Aucune notification non lue",
+    "noRead": "Aucune notification lue",
+    "types": {
+      "general": "Général",
+      "offer": "Offre",
+      "updates": "Mises à jour"
+    },
+    "targeted": "Ciblé"
   },
   "auth": {
     "signInTitle": "Connectez-vous à votre compte",
@@ -83,6 +116,11 @@
     "deleteCategory": "Supprimer la catégorie",
     "deleteCategoryConfirmation": "Êtes-vous sûr de vouloir supprimer la catégorie \"{name}\" ? Cette action ne peut pas être annulée.",
     "categoryUpdatedSuccess": "Catégorie mise à jour avec succès",
+    "cannotDeleteWithItems": "Impossible de supprimer une catégorie contenant des articles",
+    "itemsCount": "Articles",
+    "parentCategory": "Catégorie parente",
+    "noCategories": "Aucune catégorie",
+    "noCategoriesDescription": "Créez votre première catégorie pour organiser les articles",
     "categoryDeletedSuccess": "Catégorie supprimée avec succès"
   },
   "dashboard": {
@@ -131,6 +169,8 @@
     "quickActions": "Actions rapides",
     "addNewItem": "Ajouter un nouvel article",
     "addItemDescription": "Ajouter des articles à l'inventaire",
+    "salesTrend": "Tendance des ventes",
+    "totalInvoices": "Total des factures",
     "addNewPerson": "Ajouter une nouvelle personne",
     "addPersonDescription": "Ajouter clients ou fournisseurs",
     "viewIncidents": "Voir les incidents",
@@ -154,6 +194,8 @@
     "inStock": "En Stock",
     "itemsList": "Liste des articles",
     "noItemsFound": "Aucun article trouvé",
+    "noItems": "Aucun article",
+    "noItemsDescription": "Aucun article n'a été ajouté. Commencez par créer votre premier article.",
     "addFirstItem": "Ajoutez votre premier article pour commencer",
     "searchPlaceholder": "Rechercher par numéro d'article, description ou catégorie...",
     "allCategories": "Toutes les catégories",
@@ -176,6 +218,7 @@
     "actions": "Actions",
     "itemActions": "Actions de l'article",
     "viewDetails": "Voir les détails",
+    "viewInvoice": "Voir la facture",
     "editItem": "Modifier l'article",
     "deleteItem": "Supprimer l'article",
     "exportItems": "Exporter les articles",
@@ -232,6 +275,37 @@
     "saleLocationLabel": "Lieu de vente",
     "saleLocationPlaceholder": "ex. Magasin, En ligne, Foire", 
     "recordSale": "Enregistrer la vente",
+    "saleRecorded": "Vente enregistrée avec succès !",
+    "printInvoiceTitle": "Imprimer la facture ?",
+    "printInvoiceDescription": "Voulez-vous imprimer une facture pour cette vente ?",
+    "printInvoice": "Imprimer la facture",
+    "invoiceDownloaded": "Facture téléchargée avec succès",
+    "invoiceGenerationError": "Échec de la génération de la facture",
+    "downloadInvoice": "Télécharger la facture",
+    "invoice": "Facture",
+    "noClient": "Pas de client",
+    "total": "Total",
+    "invoiceTotal": "Total de la facture",
+    "itemsInInvoice": "Articles dans la facture",
+    "client": "Client",
+    "invoiceDate": "Date de la facture",
+    "multiSale": "Vendre plusieurs articles",
+    "multiSaleDescription": "Ajouter plusieurs articles pour créer une seule facture",
+    "sellItems": "Vendre les articles",
+    "salesRecorded": "Ventes enregistrées avec succès !",
+    "totalItems": "Total des articles",
+    "newItem": "Nouvel article",
+    "selectedItems": "Articles sélectionnés",
+    "items": "articles",
+    "saleDetails": "Détails de la vente",
+    "addItem": "Ajouter un article",
+    "selectItemToSell": "Veuillez sélectionner un article à vendre",
+    "selectItemError": "Veuillez sélectionner un article pour tous les onglets",
+    "printMultiInvoiceDescription": "Voulez-vous imprimer une facture pour tous les articles ?",
+    "selectItemsToSell": "Sélectionner des articles à vendre",
+    "selectItemsDescription": "Sélectionnez un ou plusieurs articles à ajouter à la vente",
+    "noAvailableItems": "Aucun article disponible à la vente",
+    "addSelectedItems": "Ajouter les articles sélectionnés",
     "soldSubtitle": "Voir et gérer vos articles vendus",
     "incidentsSubtitle": "Suivre et gérer les incidents et problèmes des articles",
     "noSoldItems": "Aucun article vendu trouvé",
@@ -250,7 +324,21 @@
     "incidentLoss": "Perte",
     "incidentTheft": "Vol",
     "incidentMaintenance": "Maintenance",
-    "incidentQuality": "Problème de qualité"
+    "incidentQuality": "Problème de qualité",
+    "sell": "Vendre",
+    "reportIncident": "Signaler un incident",
+    "image": "Image"
+  },
+  "status": {
+    "available": "Disponible",
+    "sold": "Vendu",
+    "open": "Ouvert",
+    "resolved": "Résolu",
+    "closed": "Fermé",
+    "pending": "En attente",
+    "up-to-date": "À jour",
+    "needs-update": "Mise à jour nécessaire",
+    "overdue": "En retard"
   },
   "books": {
     "title": "Livres",
@@ -266,6 +354,8 @@
     "creating": "Création...",
     "selectBook": "Sélectionner un livre",
     "createNewBook": "Créer un nouveau livre",
+    "createBookDescription": "Créer un nouveau livre pour organiser vos articles",
+    "bookDetails": "Détails du livre",
     "notAuthenticated": "Non authentifié",
     "failedToCreateBook": "Échec de la création du livre",
     "bookCreatedSuccess": "Livre créé avec succès"
@@ -306,6 +396,7 @@
     "lastnamePlaceholder": "ex. Dupont",
     "phone": "Téléphone",
     "phonePlaceholder": "ex. +33 1 23 45 67 89",
+    "email": "Email",
     "website": "Site web",
     "websitePlaceholder": "ex. www.exemple.com",
     "specialization": "Spécialisation",
@@ -334,7 +425,13 @@
     "type": "Type",
     "location": "Localisation",
     "transactions": "Transactions",
+    "purchases": "Achats", 
+    "sales": "Ventes",
+    "invoices": "Factures",
+    "cannotDeleteWithTransactions": "Impossible de supprimer une personne avec des transactions",
+    "noPeople": "Aucune personne trouvée",
     "noPeopleFound": "Aucune personne trouvée",
+    "noPeopleDescription": "Ajoutez votre première personne pour commencer",
     "addPerson": "Ajouter une personne",
     "types": {
       "expert": "Expert",
@@ -372,6 +469,7 @@
     "addCost": "Ajouter un coût",
     "addCostDescription": "Enregistrer une nouvelle entrée de coût",
     "noCosts": "Aucun coût trouvé",
+    "noCostsDescription": "Ajoutez votre premier coût pour commencer",
     "createFirstCost": "Ajoutez votre premier coût pour commencer",
     "date": "Date",
     "eventType": "Type d'événement",
@@ -388,7 +486,25 @@
     "editCost": "Modifier le coût",
     "editCostDescription": "Mettre à jour les détails du coût",
     "deleteCost": "Supprimer le coût",
-    "deleteCostConfirmation": "Êtes-vous sûr de vouloir supprimer ce coût de {amount} pour {type} le {date} ?"
+    "deleteCostConfirmation": "Êtes-vous sûr de vouloir supprimer ce coût de {amount} pour {type} le {date} ?",
+    "deleteCostDescription": "Êtes-vous sûr de vouloir supprimer ce coût de {amount} du {date} ?",
+    "selectBook": "Sélectionner un livre",
+    "amountMustBePositive": "Le montant doit être un nombre positif",
+    "add": "Ajouter",
+    "save": "Enregistrer",
+    "adding": "Ajout...",
+    "saving": "Enregistrement...",
+    "eventTypeNameTooShort": "Le nom du type d'événement doit comporter au moins 2 caractères",
+    "deleteEventTypeDescription": "Êtes-vous sûr de vouloir supprimer le type d'événement \"{name}\" ?",
+    "eventTypeDeleted": "Type d'événement supprimé avec succès",
+    "failedToDeleteEventType": "Échec de la suppression du type d'événement",
+    "costDeleted": "Coût supprimé avec succès",
+    "failedToDeleteCost": "Échec de la suppression du coût",
+    "failedToLoadBooks": "Échec du chargement des livres",
+    "noBookSelected": "Aucun livre sélectionné. Veuillez d'abord sélectionner un livre.",
+    "quickAddHint": "Besoin d'un nouveau type d'événement ? Sélectionnez 'Ajouter un nouveau type d'événement' dans le menu déroulant.",
+    "addNewEventType": "Ajouter un nouveau type d'événement",
+    "pleaseSelectEventType": "Veuillez sélectionner un type d'événement valide"
   },
   "incidents": {
     "title": "Incidents",
@@ -429,7 +545,16 @@
     "resolved": "Résolu",
     "closed": "Fermé",
     "pleaseSelectItem": "Veuillez d'abord sélectionner un article",
-    "pleaseRequiredFields": "Veuillez remplir tous les champs requis"
+    "pleaseRequiredFields": "Veuillez remplir tous les champs requis",
+    "image": "Image",
+    "item": "Article",
+    "type": "Type",
+    "description": "Description",
+    "status": "Statut",
+    "date": "Date",
+    "incident": "Incident",
+    "noIncidents": "Aucun incident",
+    "noIncidentsDescription": "Aucun incident n'a été signalé pour le moment"
   },
   "subscription": {
     "successTitle": "Abonnement Réussi!",
@@ -630,6 +755,220 @@
     "sendToAuthorities": "Envoyer aux Autorités",
     "qrScanner": "Scanner le Code QR",
     "exportHistory": "Historique des Exportations",
-    "noExportsFound": "Aucun export trouvé"
+    "noExportsFound": "Aucun export trouvé",
+    "totalItems": "Total Articles",
+    "itemsSold": "vendus",
+    "totalValue": "Valeur Totale",
+    "thisMonth": "ce mois",
+    "incidents": "Incidents",
+    "incidentRate": "taux d'incidents",
+    "lastExport": "Dernier Export",
+    "never": "Jamais",
+    "registryStatus": "Statut du Registre",
+    "status": {
+      "up-to-date": "À jour",
+      "needs-update": "Mise à jour nécessaire",
+      "overdue": "En retard"
+    },
+    "neverExported": "Jamais",
+    "keyFeatures": "Fonctionnalités Clés",
+    "feature1": "Enregistrement automatique des transactions",
+    "feature2": "Surveillance de conformité en temps réel",
+    "feature3": "Chiffrement sécurisé des données",
+    "recentActivity": "Activité Récente",
+    "noActivityYet": "Aucune activité pour le moment",
+    "quickActions": "Actions Rapides",
+    "viewReports": "Voir Rapports",
+    "settings": "Paramètres",
+    "compliance": "Conformité",
+    "gdprCompliant": "Conforme RGPD",
+    "dataEncrypted": "Données Chiffrées",
+    "regularBackups": "Sauvegardes Régulières",
+    "exportCSV": "Exporter CSV",
+    "sendToAuthoritiesDescription": "Envoyez votre rapport de registre aux autorités",
+    "authorityEmail": "Email de l'Autorité",
+    "authorityName": "Nom de l'Autorité",
+    "authorityNamePlaceholder": "Nom du Département de Police",
+    "emailSubject": "Sujet de l'Email",
+    "defaultSubject": "Rapport du Registre de Police",
+    "message": "Message",
+    "messagePlaceholder": "Message optionnel à inclure avec le rapport...",
+    "sendReport": "Envoyer Rapport",
+    "sending": "Envoi..."
+  },
+  "documentation": {
+    "title": "Documentation",
+    "tabs": {
+      "gettingStarted": "Démarrage",
+      "features": "Fonctionnalités",
+      "workflows": "Processus",
+      "faq": "FAQ"
+    },
+    "intro": {
+      "title": "Bienvenue dans Chinea",
+      "description": "Chinea est un système complet de gestion d'inventaire conçu spécifiquement pour les entreprises qui doivent maintenir des registres de police. Il vous aide à suivre les articles, gérer les ventes, surveiller les coûts et assurer la conformité aux exigences réglementaires.",
+      "compliance": "Ce système est conçu pour répondre à toutes les exigences réglementaires pour la tenue des registres de police, garantissant que votre entreprise reste conforme."
+    },
+    "gettingStarted": {
+      "title": "Démarrage",
+      "description": "Suivez ces étapes simples pour configurer votre système de gestion d'inventaire",
+      "step1": {
+        "title": "Créez Votre Compte",
+        "description": "Inscrivez-vous avec votre adresse email et créez un mot de passe sécurisé. Vos données sont cryptées et protégées."
+      },
+      "step2": {
+        "title": "Créez Votre Premier Livre",
+        "description": "Les livres de police sont des conteneurs pour votre inventaire. Créez différents livres pour différents types d'articles ou emplacements d'entreprise."
+      },
+      "step3": {
+        "title": "Configurez les Catégories",
+        "description": "Organisez votre inventaire en créant des catégories. Vous pouvez créer des catégories imbriquées pour une meilleure organisation."
+      },
+      "step4": {
+        "title": "Ajoutez Vos Articles",
+        "description": "Commencez à ajouter des articles à votre inventaire avec des détails comme le prix d'achat, la description, les images et les champs personnalisés."
+      },
+      "step5": {
+        "title": "Suivez les Ventes et la Conformité",
+        "description": "Enregistrez les ventes, suivez les incidents et générez des rapports de registre de police pour rester conforme aux réglementations."
+      }
+    },
+    "quickTips": {
+      "title": "Conseils Rapides",
+      "tip1": "Utilisez la vue grille pour un aperçu visuel de vos articles avec images",
+      "tip2": "Exportez vos données régulièrement pour conserver des sauvegardes locales",
+      "tip3": "Configurez des champs personnalisés pour des attributs d'articles spécifiques à votre entreprise",
+      "tip4": "Utilisez les fonctions de recherche et de filtrage pour trouver rapidement des articles"
+    },
+    "features": {
+      "books": {
+        "title": "Gestion des Livres",
+        "description": "Créez et gérez des livres de registre de police",
+        "item1": "Plusieurs types de livres pour différentes catégories d'inventaire",
+        "item2": "Suivi des références pour une identification facile",
+        "item3": "Exporter des livres pour soumission aux autorités",
+        "item4": "Isolation des données basée sur les livres pour la sécurité"
+      },
+      "items": {
+        "title": "Gestion de l'Inventaire",
+        "description": "Suivi et gestion complète des articles",
+        "item1": "Informations détaillées sur les articles avec champs personnalisés",
+        "item2": "Pièces jointes d'images et de documents",
+        "item3": "Suivi des achats et de l'emplacement",
+        "item4": "Gestion du statut (disponible/vendu)",
+        "item5": "Capacités d'import/export en masse"
+      },
+      "categories": {
+        "title": "Catégories",
+        "description": "Organisez efficacement votre inventaire",
+        "item1": "Structure de catégories hiérarchique",
+        "item2": "Relations parent-enfant",
+        "item3": "Suivi du nombre d'articles par catégorie"
+      },
+      "people": {
+        "title": "Gestion des Personnes",
+        "description": "Suivez tous vos contacts professionnels",
+        "item1": "Gérez les experts, clients et vendeurs",
+        "item2": "Informations de contact complètes",
+        "item3": "Suivi de l'historique des transactions",
+        "item4": "Champs de spécialisation et d'expertise"
+      },
+      "costs": {
+        "title": "Suivi des Coûts",
+        "description": "Surveillez vos dépenses d'entreprise",
+        "item1": "Créez des types d'événements de coûts personnalisés",
+        "item2": "Suivez les dépenses par date et catégorie",
+        "item3": "Calculs des coûts mensuels et totaux",
+        "item4": "Rapports de dépenses détaillés"
+      },
+      "incidents": {
+        "title": "Gestion des Incidents",
+        "description": "Suivez et résolvez les problèmes d'articles",
+        "item1": "Signalez les dommages, pertes, vols ou problèmes de qualité",
+        "item2": "Suivez le statut et la résolution des incidents",
+        "item3": "Joignez des images et de la documentation"
+      },
+      "additional": {
+        "title": "Fonctionnalités Supplémentaires",
+        "languages": {
+          "title": "Support Multilingue",
+          "description": "Disponible en anglais et en français avec changement de langue facile"
+        },
+        "theme": {
+          "title": "Options de Thème",
+          "description": "Choisissez entre les thèmes clair et sombre pour un affichage confortable"
+        },
+        "export": {
+          "title": "Export de Données",
+          "description": "Exportez vos données au format CSV pour sauvegarde ou analyse"
+        },
+        "search": {
+          "title": "Recherche Avancée",
+          "description": "Recherche et filtrage puissants sur toutes vos données"
+        }
+      }
+    },
+    "workflows": {
+      "inventory": {
+        "title": "Processus d'Inventaire",
+        "description": "Le processus typique pour gérer votre inventaire",
+        "step1": "Créez un nouvel article avec toutes les informations requises",
+        "step2": "Téléchargez des images et joignez des documents pertinents",
+        "step3": "Attribuez l'article à une catégorie pour l'organisation",
+        "step4": "Suivez l'emplacement et le statut de l'article",
+        "step5": "Mettez à jour le statut lors de la vente et enregistrez les détails de vente"
+      },
+      "sales": {
+        "title": "Processus de Vente",
+        "description": "Comment traiter une vente",
+        "step1": "Sélectionnez l'article à vendre dans votre inventaire",
+        "step2": "Cliquez sur 'Marquer comme vendu' et entrez les détails de vente",
+        "step3": "Ajoutez les informations client et le mode de paiement",
+        "step4": "L'article est automatiquement déplacé vers les articles vendus"
+      },
+      "compliance": {
+        "title": "Processus de Conformité",
+        "description": "Maintenir la conformité réglementaire",
+        "step1": "Gardez toutes les informations des articles à jour",
+        "step2": "Générez régulièrement des rapports de registre de police",
+        "step3": "Vérifiez l'exactitude du rapport",
+        "step4": "Envoyez aux autorités ou téléchargez pour vos archives"
+      }
+    },
+    "faq": {
+      "title": "Questions Fréquemment Posées",
+      "description": "Questions courantes sur l'utilisation de Chinea",
+      "q1": {
+        "question": "Qu'est-ce qu'un livre de police ?",
+        "answer": "Un livre de police est un registre obligatoire que certaines entreprises doivent tenir pour suivre leur inventaire et leurs transactions. Il aide les autorités à surveiller le flux de marchandises et à prévenir le commerce illégal."
+      },
+      "q2": {
+        "question": "À quelle fréquence dois-je générer des rapports ?",
+        "answer": "La fréquence dépend de vos réglementations locales. La plupart des entreprises génèrent des rapports mensuellement, mais certaines peuvent avoir besoin de le faire hebdomadairement ou trimestriellement. Vérifiez auprès de vos autorités locales pour les exigences spécifiques."
+      },
+      "q3": {
+        "question": "Puis-je avoir plusieurs utilisateurs sur un compte ?",
+        "answer": "Actuellement, chaque compte est conçu pour un seul utilisateur. La fonctionnalité multi-utilisateurs pourra être ajoutée dans les futures mises à jour."
+      },
+      "q4": {
+        "question": "Mes données sont-elles sécurisées ?",
+        "answer": "Oui, toutes les données sont cryptées et stockées en toute sécurité. Nous utilisons des mesures de sécurité standard de l'industrie et des sauvegardes régulières pour protéger vos informations."
+      },
+      "q5": {
+        "question": "Puis-je importer un inventaire existant ?",
+        "answer": "Oui, vous pouvez importer des articles en masse en utilisant des fichiers CSV. Préparez vos données dans le format correct et utilisez la fonction d'importation dans la section articles."
+      },
+      "q6": {
+        "question": "Que se passe-t-il quand je marque un article comme vendu ?",
+        "answer": "Le statut de l'article passe à 'vendu', il est retiré de l'inventaire disponible et apparaît dans la section des articles vendus. Tous les détails de vente sont enregistrés pour vos archives et rapports."
+      }
+    },
+    "support": {
+      "title": "Besoin d'Aide ?",
+      "description": "Si vous avez des questions ou besoin d'assistance, nous sommes là pour vous aider.",
+      "email": "Email",
+      "hours": "Heures de Support",
+      "hoursValue": "Lundi au Vendredi, 9h - 18h CET"
+    }
   }
 }

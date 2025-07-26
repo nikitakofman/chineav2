@@ -1,3 +1,8 @@
+/**
+ * @deprecated This file has been replaced by costs-migrated.ts which uses EntityService.
+ * Please use the migrated version for all new development.
+ * Migration guide: /MIGRATION_GUIDE.md
+ */
 "use server";
 
 import { revalidatePath } from "next/cache";

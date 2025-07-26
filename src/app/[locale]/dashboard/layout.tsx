@@ -5,6 +5,7 @@ import { DashboardSidebar } from '@/components/dashboard/sidebar'
 import { BookProvider } from '@/contexts/book-context'
 import { MobileSidebarProvider } from '@/contexts/mobile-sidebar-context'
 import { checkUserBooks } from '@/app/actions/books'
+import { getUnreadNotificationCount } from '@/app/actions/notifications'
 import { prisma } from '@/lib/prisma'
 
 export default async function DashboardLayout({
@@ -32,11 +33,14 @@ export default async function DashboardLayout({
     }
   })
 
+  // Get unread notification count
+  const unreadNotificationCount = await getUnreadNotificationCount()
+
   return (
     <BookProvider initialBooks={books}>
       <MobileSidebarProvider>
         <div className="min-h-screen bg-muted/30">
-          <DashboardHeader />
+          <DashboardHeader unreadNotificationCount={unreadNotificationCount} />
           <div className="flex flex-1 h-[calc(100vh-73px)]">
             <DashboardSidebar categories={categories} />
             <main className="flex-1 overflow-y-auto overflow-x-hidden">

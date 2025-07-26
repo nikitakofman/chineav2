@@ -269,13 +269,37 @@ export async function deleteCentralizedDocument(documentId: string): Promise<boo
 /**
  * Reorder images in centralized system
  */
-export async function reorderCentralizedImages(imagePositions: Array<{ imageId: string; position: number }>): Promise<boolean> {
+export async function reorderCentralizedImages(
+  imagePositions: Array<{ imageId: string; position: number }>,
+  entityType?: string,
+  entityId?: string
+): Promise<boolean> {
   try {
-    const response = await fetch('/api/images', {
+    
+    // Use entity-specific endpoint if available
+    let endpoint = '/api/images'
+    let body: any = { imagePositions }
+    
+    if (entityType === 'item' && entityId) {
+      endpoint = '/api/items/images/reorder'
+      body = { itemId: entityId, imagePositions }
+    } else if (entityType === 'incident' && entityId) {
+      // Check if there's an incident-specific endpoint
+      endpoint = '/api/incidents/images/reorder'
+      body = { incidentId: entityId, imagePositions }
+    }
+    
+    
+    const response = await fetch(endpoint, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imagePositions })
+      body: JSON.stringify(body)
     })
+
+    if (!response.ok) {
+      const responseData = await response.text()
+      console.error('Reorder failed with status:', response.status, responseData)
+    }
 
     return response.ok
   } catch (error) {

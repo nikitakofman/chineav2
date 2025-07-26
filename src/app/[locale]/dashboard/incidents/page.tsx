@@ -87,7 +87,11 @@ export default async function IncidentsPage() {
   // Add images to incidents
   const incidents = incidentsRaw.map(incident => {
     const incidentImages = imagesMap.get(incident.id) || []
-    const primaryImage = incidentImages.find(img => img.is_primary) || incidentImages[0]
+    
+    // Find primary image: prioritize position 0, then is_primary flag, then first image
+    const primaryImage = incidentImages.find(img => img.position === 0) || 
+                         incidentImages.find(img => img.is_primary) || 
+                         incidentImages[0]
     
     return {
       ...incident,

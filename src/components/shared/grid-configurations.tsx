@@ -11,11 +11,13 @@ import { DataGrid, type GridCardConfig } from './data-grid'
 import { 
   getStatusBadge, getTypeBadge, getPersonTypeIcon, getCategoryIcon,
   createViewAction, createEditAction, createDeleteAction,
-  createSellAction, createIncidentAction,
+  createSellAction, createIncidentAction, createInvoiceAction,
   formatGridDate, formatPrice, truncateText, formatContactInfo
 } from './grid-utils'
-import { AddItemModal, SaleModal, IncidentModal, PersonModal } from './modal-configurations'
+import { MultiSaleModal, IncidentModal, PersonModal, AddItemModal } from './modal-configurations'
+import { UnifiedEntityModal } from '@/components/modals/unified-entity-modal'
 import { cn } from '@/lib/utils'
+import { useRouter } from 'next/navigation'
 
 // ============================================================================
 // Items Grid
@@ -30,10 +32,15 @@ interface Item {
   status: string | null
   color: string | null
   grade: string | null
+  category_id: string | null
   category: {
     id: string
     name: string
   } | null
+  item_purchases?: Array<{
+    purchase_price: number | null
+    purchase_date: Date | null
+  }>
   purchase?: {
     purchase_date: Date | null
   } | null
@@ -47,27 +54,40 @@ interface Item {
     storage_url: string
     title?: string
     alt_text?: string
+    position?: number
   }>
 }
 
 interface ItemsGridProps {
   items: Item[]
   categories?: Array<{ id: string; name: string }>
+  onUpdate?: () => void
 }
 
-export function ItemsGrid({ items, categories = [] }: ItemsGridProps) {
+export function ItemsGrid({ items, categories = [], onUpdate }: ItemsGridProps) {
   const t = useTranslations()
+  const router = useRouter()
   const [selectedItem, setSelectedItem] = useState<Item | null>(null)
   const [saleModalItem, setSaleModalItem] = useState<Item | null>(null)
   const [incidentModalItem, setIncidentModalItem] = useState<Item | null>(null)
   const [viewMode, setViewMode] = useState<'view' | 'edit'>('view')
-  const [viewingImages, setViewingImages] = useState<Array<{ url: string; alt_text?: string }>>([])
 
   const renderCard = (item: Item): GridCardConfig => {
     const status = item.status || 'available'
     const imageCount = item.images?.length || 0
-    const hasImage = item.primaryImage?.url || (item.images && item.images.length > 0)
-    const primaryImageUrl = item.primaryImage?.url || item.images?.[0]?.storage_url
+    
+    // Sort images by position first
+    const sortedImages = item.images ? [...item.images].sort((a, b) => {
+      const posA = a.position !== null && a.position !== undefined ? a.position : 999
+      const posB = b.position !== null && b.position !== undefined ? b.position : 999
+      return posA - posB
+    }) : []
+    
+    const hasImage = item.primaryImage?.url || sortedImages.length > 0
+    
+    // Get the image with position 0, or fall back to first sorted image
+    const firstPositionImage = sortedImages.find(img => img.position === 0) || sortedImages[0]
+    const primaryImageUrl = item.primaryImage?.url || firstPositionImage?.storage_url
 
     return {
       badges: [
@@ -78,14 +98,7 @@ export function ItemsGrid({ items, categories = [] }: ItemsGridProps) {
       image: hasImage && primaryImageUrl ? {
         url: primaryImageUrl,
         alt: item.primaryImage?.alt_text || item.description || '',
-        count: imageCount,
-        onClick: imageCount > 0 ? () => {
-          const images = item.images?.map(img => ({
-            url: img.storage_url,
-            alt_text: img.alt_text
-          })) || []
-          setViewingImages(images)
-        } : undefined
+        count: imageCount
       } : undefined,
       content: (
         <div className="space-y-2">
@@ -156,44 +169,33 @@ export function ItemsGrid({ items, categories = [] }: ItemsGridProps) {
 
       {/* Modals */}
       {selectedItem && (
-        <AddItemModal
+        <UnifiedEntityModal
           open={!!selectedItem}
           onOpenChange={(open) => {
             if (!open) {
               setSelectedItem(null)
               setViewMode('view')
+              // Refresh the data after closing to reflect any image changes
+              onUpdate?.()
             }
           }}
-          categories={categories}
-          item={{
-            id: selectedItem.id,
-            itemNumber: selectedItem.item_number || '',
-            description: selectedItem.description || '',
-            categoryId: selectedItem.category?.id || null,
-            color: selectedItem.color || '',
-            grade: selectedItem.grade || '',
-            customFields: {},
-            purchase: {
-              sellerId: null,
-              purchasePrice: selectedItem.purchase_price?.toString(),
-              purchaseDate: selectedItem.purchase?.purchase_date
-            },
-            sale: {
-              clientId: null,
-              salePrice: selectedItem.sale_price?.toString(),
-              saleDate: null
-            },
-            images: []
-          }}
+          entityType="item"
           mode={viewMode}
+          item={selectedItem as any}
+          categories={categories}
         />
       )}
 
       {saleModalItem && (
-        <SaleModal
+        <MultiSaleModal
           open={!!saleModalItem}
           onOpenChange={(open) => !open && setSaleModalItem(null)}
-          item={saleModalItem}
+          initialItem={saleModalItem}
+          availableItems={items}
+          onSuccess={() => {
+            setSaleModalItem(null)
+            router.refresh()
+          }}
         />
       )}
 
@@ -238,6 +240,7 @@ interface Incident {
     id: string
     storage_url: string
     alt_text?: string
+    position?: number
   }>
   centralizedImages?: Array<{
     id: string
@@ -260,13 +263,25 @@ interface IncidentsGridProps {
 
 export function IncidentsGrid({ incidents }: IncidentsGridProps) {
   const t = useTranslations()
+  const router = useRouter()
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null)
 
   const renderCard = (incident: Incident): GridCardConfig => {
     const status = incident.resolution_status || 'open'
     const imageCount = incident.images?.length || 0
-    const hasImage = incident.primaryImage?.url || (incident.images && incident.images.length > 0)
-    const primaryImageUrl = incident.primaryImage?.url || incident.images?.[0]?.storage_url
+    
+    // Sort images by position first
+    const sortedImages = incident.images ? [...incident.images].sort((a, b) => {
+      const posA = a.position !== null && a.position !== undefined ? a.position : 999
+      const posB = b.position !== null && b.position !== undefined ? b.position : 999
+      return posA - posB
+    }) : []
+    
+    const hasImage = incident.primaryImage?.url || sortedImages.length > 0
+    
+    // Get the image with position 0, or fall back to first sorted image
+    const firstPositionImage = sortedImages.find(img => img.position === 0) || sortedImages[0]
+    const primaryImageUrl = incident.primaryImage?.url || firstPositionImage?.storage_url
 
     return {
       badges: [
@@ -334,7 +349,13 @@ export function IncidentsGrid({ incidents }: IncidentsGridProps) {
       {selectedIncident && (
         <IncidentModal
           open={!!selectedIncident}
-          onOpenChange={(open) => !open && setSelectedIncident(null)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedIncident(null)
+              // Refresh the data after closing to reflect any image changes
+              router.refresh()
+            }
+          }}
           incident={selectedIncident}
           mode="view"
         />
@@ -378,25 +399,56 @@ interface SoldItem {
     id: string
     storage_url: string
     alt_text?: string
+    position?: number
   }>
 }
 
 interface SoldItemsGridProps {
   items: SoldItem[]
   categories?: Array<{ id: string; name: string }>
+  invoiceGroups?: Array<{
+    id: string
+    invoice_number: string
+    invoice_date: Date
+    total_amount: number
+    client?: {
+      id: string
+      name: string
+      lastname?: string | null
+    } | null
+    items: Array<any>
+  }>
 }
 
-export function SoldItemsGrid({ items, categories = [] }: SoldItemsGridProps) {
+export function SoldItemsGrid({ items, categories = [], invoiceGroups }: SoldItemsGridProps) {
   const t = useTranslations()
+  const router = useRouter()
   const [selectedItem, setSelectedItem] = useState<SoldItem | null>(null)
+
+  // Use grouped grid if invoice groups are provided
+  if (invoiceGroups && invoiceGroups.length > 0) {
+    const SoldItemsGroupedGrid = require('@/components/items/sold-items-grouped-grid').SoldItemsGroupedGrid
+    return <SoldItemsGroupedGrid invoiceGroups={invoiceGroups} />
+  }
 
   const renderCard = (item: SoldItem): GridCardConfig => {
     const profit = (item.sale_price || 0) - (item.purchase_price || 0)
     const profitPercentage = item.purchase_price 
       ? ((profit / item.purchase_price) * 100).toFixed(1)
       : '0'
-    const hasImage = item.primaryImage?.url || (item.images && item.images.length > 0)
-    const primaryImageUrl = item.primaryImage?.url || item.images?.[0]?.storage_url
+    
+    // Sort images by position first
+    const sortedImages = item.images ? [...item.images].sort((a, b) => {
+      const posA = a.position !== null && a.position !== undefined ? a.position : 999
+      const posB = b.position !== null && b.position !== undefined ? b.position : 999
+      return posA - posB
+    }) : []
+    
+    const hasImage = item.primaryImage?.url || sortedImages.length > 0
+    
+    // Get the image with position 0, or fall back to first sorted image
+    const firstPositionImage = sortedImages.find(img => img.position === 0) || sortedImages[0]
+    const primaryImageUrl = item.primaryImage?.url || firstPositionImage?.storage_url
 
     return {
       badges: [
@@ -462,7 +514,42 @@ export function SoldItemsGrid({ items, categories = [] }: SoldItemsGridProps) {
         </div>
       ),
       actions: [
-        createViewAction(() => setSelectedItem(item), t)
+        createViewAction(() => setSelectedItem(item), t),
+        createInvoiceAction(async () => {
+          try {
+            const saleId = item.item_sales?.[0]?.id
+            if (!saleId) {
+              console.error('No sale ID found for item')
+              return
+            }
+
+            const response = await fetch('/api/invoice', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                saleId: saleId,
+              }),
+            })
+            
+            if (!response.ok) {
+              throw new Error('Failed to generate invoice')
+            }
+            
+            const blob = await response.blob()
+            const url = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.style.display = 'none'
+            a.href = url
+            a.download = `invoice_${item.item_number || item.id}_${new Date().toISOString().split('T')[0]}.pdf`
+            document.body.appendChild(a)
+            a.click()
+            window.URL.revokeObjectURL(url)
+          } catch (error) {
+            console.error('Error downloading invoice:', error)
+          }
+        }, t)
       ]
     }
   }
@@ -483,7 +570,13 @@ export function SoldItemsGrid({ items, categories = [] }: SoldItemsGridProps) {
       {selectedItem && (
         <AddItemModal
           open={!!selectedItem}
-          onOpenChange={(open) => !open && setSelectedItem(null)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedItem(null)
+              // Refresh the data after closing to reflect any image changes
+              router.refresh()
+            }
+          }}
           categories={categories}
           item={{
             id: selectedItem.id,
@@ -537,6 +630,18 @@ interface Person {
   specialization?: string | null
   created_at: Date | null
   person_type?: PersonType | null
+  invoices?: {
+    id: string
+    invoice_number: string
+    invoice_date: Date
+    total_amount: number
+    status: string
+  }[]
+  _count?: {
+    item_purchases: number
+    item_sales: number
+    invoices: number
+  }
 }
 
 interface PeopleGridProps {

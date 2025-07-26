@@ -1,146 +1,96 @@
 'use server'
 
-import { createClient } from '@/utils/supabase/server'
-import { prisma } from '@/lib/prisma'
+import { EntityService, ValidationService, SerializationService } from '@/services'
 import { revalidatePath } from 'next/cache'
 
+/**
+ * Create a new category using the centralized EntityService
+ */
 export async function createCategory(name: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    return { error: 'Not authenticated' }
-  }
-
-  if (!name.trim()) {
-    return { error: 'Category name is required' }
-  }
-
-  try {
-    // Check if category already exists for this user
-    const existingCategory = await prisma.category.findFirst({
-      where: {
-        user_id: user.id,
-        name: name.trim()
-      }
-    })
-
-    if (existingCategory) {
-      return { error: 'A category with this name already exists' }
+  const result = await EntityService.create('category', {
+    name: name.trim()
+  }, {
+    revalidatePaths: ['/dashboard/categories', '/dashboard/items']
+  })
+  
+  if (!result.success) {
+    return { 
+      error: result.validationErrors?.[0] || result.error || 'Failed to create category' 
     }
-
-    // Create the category
-    const category = await prisma.category.create({
-      data: {
-        user_id: user.id,
-        name: name.trim()
-      }
-    })
-
-    return { category }
-  } catch (error) {
-    console.error('Failed to create category:', error)
-    return { error: 'Failed to create category' }
   }
+  
+  return { category: result.data }
 }
 
+/**
+ * Update an existing category
+ */
 export async function updateCategory(categoryId: string, formData: FormData) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    return { error: 'Not authenticated' }
-  }
-
   const name = formData.get('name') as string
-
+  
   if (!name || !name.trim()) {
     return { error: 'Category name is required' }
   }
-
-  try {
-    // Check if category belongs to user
-    const existing = await prisma.category.findFirst({
-      where: {
-        id: categoryId,
-        user_id: user.id
-      }
-    })
-
-    if (!existing) {
-      return { error: 'Category not found' }
+  
+  const result = await EntityService.update('category', categoryId, {
+    name: name.trim()
+  }, {
+    revalidatePaths: ['/dashboard/categories', '/dashboard/items']
+  })
+  
+  if (!result.success) {
+    return { 
+      error: result.validationErrors?.[0] || result.error || 'Failed to update category' 
     }
-
-    // Check if another category with the same name exists
-    const duplicate = await prisma.category.findFirst({
-      where: {
-        name: name.trim(),
-        user_id: user.id,
-        id: { not: categoryId }
-      }
-    })
-
-    if (duplicate) {
-      return { error: 'Another category with this name already exists' }
-    }
-
-    const category = await prisma.category.update({
-      where: { id: categoryId },
-      data: {
-        name: name.trim(),
-        updated_at: new Date()
-      }
-    })
-
-    console.log('Updated category:', category)
-
-    revalidatePath('/dashboard/categories')
-    revalidatePath('/dashboard/items')
-    return { category }
-  } catch (error) {
-    console.error('Failed to update category:', error)
-    return { error: 'Failed to update category' }
   }
+  
+  console.log('Updated category:', result.data)
+  
+  return { category: result.data }
 }
 
+/**
+ * Delete a category
+ */
 export async function deleteCategory(categoryId: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    return { error: 'Not authenticated' }
-  }
-
-  try {
-    // Check if category belongs to user
-    const existing = await prisma.category.findFirst({
-      where: {
-        id: categoryId,
-        user_id: user.id
-      }
-    })
-
-    if (!existing) {
-      return { error: 'Category not found' }
+  const result = await EntityService.delete('category', categoryId, {
+    revalidatePaths: ['/dashboard/categories']
+  })
+  
+  if (!result.success) {
+    return { 
+      error: result.validationErrors?.[0] || result.error || 'Failed to delete category' 
     }
-
-    // Check if category is used by any items
-    const itemsCount = await prisma.items.count({
-      where: { category_id: categoryId }
-    })
-
-    if (itemsCount > 0) {
-      return { error: 'Cannot delete category that is being used by items' }
-    }
-
-    await prisma.category.delete({
-      where: { id: categoryId }
-    })
-
-    revalidatePath('/dashboard/categories')
-    return { success: true }
-  } catch (error) {
-    console.error('Failed to delete category:', error)
-    return { error: 'Failed to delete category' }
   }
+  
+  return { success: true }
+}
+
+/**
+ * Get all categories for the current user
+ */
+export async function getCategories() {
+  const result = await EntityService.list('category', {
+    orderBy: { name: 'asc' }
+  })
+  
+  if (!result.success) {
+    console.error('Failed to get categories:', result.error)
+    return []
+  }
+  
+  return result.data || []
+}
+
+/**
+ * Get a single category by ID
+ */
+export async function getCategory(categoryId: string) {
+  const result = await EntityService.get('category', categoryId)
+  
+  if (!result.success) {
+    return { error: result.error || 'Category not found' }
+  }
+  
+  return { category: result.data }
 }

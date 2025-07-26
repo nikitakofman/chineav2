@@ -245,6 +245,7 @@ export async function PUT(request: Request) {
 
     const body = await request.json()
     const { imageId, imagePositions, setPrimary, entityType, entityId } = body
+    
 
     // Handle setting image as primary
     if (setPrimary && imageId && entityType && entityId) {
@@ -325,18 +326,21 @@ export async function PUT(request: Request) {
 
     if (imagePositions) {
       // Handle image reordering
-      for (const { imageId: imgId, position } of imagePositions) {
-        // Verify ownership before updating
-        const image = await prisma.images.findFirst({
-          where: {
-            id: imgId,
-            is_deleted: false
-          }
-        })
+      // First, verify all images exist and user has access
+      const imageIds = imagePositions.map((ip: any) => ip.imageId)
+      const images = await prisma.images.findMany({
+        where: {
+          id: { in: imageIds },
+          is_deleted: false
+        }
+      })
 
-        if (!image) continue
+      if (images.length !== imagePositions.length) {
+        return NextResponse.json({ error: 'Some images not found' }, { status: 400 })
+      }
 
-        // Verify ownership based on entity type
+      // Verify ownership for all images
+      for (const image of images) {
         let hasAccess = false
         
         switch (image.entity_type) {
@@ -371,13 +375,22 @@ export async function PUT(request: Request) {
             break
         }
 
-        if (hasAccess) {
-          await prisma.images.update({
+        if (!hasAccess) {
+          return NextResponse.json({ error: 'Access denied for one or more images' }, { status: 403 })
+        }
+      }
+
+      // Update all positions in a transaction
+      
+      const updateResults = await prisma.$transaction(
+        imagePositions.map(({ imageId: imgId, position }: any) =>
+          prisma.images.update({
             where: { id: imgId },
             data: { position }
           })
-        }
-      }
+        )
+      )
+      
 
       return NextResponse.json({ success: true })
     }

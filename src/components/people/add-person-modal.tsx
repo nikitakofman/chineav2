@@ -1,1 +1,0 @@
-export { PersonModal as AddPersonModal } from './person-modal'

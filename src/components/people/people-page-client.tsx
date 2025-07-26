@@ -4,12 +4,12 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { PeopleTable } from './people-table'
-import { PeopleGrid } from './people-grid'
+import { PeopleTable } from '@/components/shared/table-configurations'
+import { PeopleGrid } from '@/components/shared/grid-configurations'
 import { ViewToggle, ViewType } from '@/components/ui/view-toggle'
 import { useDefaultMobileView } from '@/hooks/use-default-mobile-view'
 import { PersonTypeSelectionDialog } from './person-type-selection-dialog'
-import { AddPersonModal } from './add-person-modal'
+import { AddPersonModal, PersonModal } from '@/components/shared/modal-configurations'
 
 interface PersonType {
   id: string
@@ -32,6 +32,18 @@ interface Person {
   person_type?: PersonType | null
   item_purchases: { id: string }[]
   item_sales: { id: string }[]
+  invoices?: {
+    id: string
+    invoice_number: string
+    invoice_date: Date
+    total_amount: number
+    status: string
+  }[]
+  _count?: {
+    item_purchases: number
+    item_sales: number
+    invoices: number
+  }
 }
 
 interface PeoplePageClientProps {
@@ -44,6 +56,8 @@ export function PeoplePageClient({ people, personTypes }: PeoplePageClientProps)
   const [showTypeSelection, setShowTypeSelection] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null)
+  const [editingPerson, setEditingPerson] = useState<Person | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
   const t = useTranslations()
 
   const handleSelectType = (typeId: string) => {
@@ -54,6 +68,29 @@ export function PeoplePageClient({ people, personTypes }: PeoplePageClientProps)
 
   const handleAddPerson = () => {
     setShowTypeSelection(true)
+  }
+
+  const handleEditPerson = (person: Person) => {
+    setEditingPerson(person)
+    setShowEditModal(true)
+  }
+
+  const handleDeletePerson = async (person: Person) => {
+    if (confirm(t('people.deletePersonConfirmation', { name: person.name }))) {
+      try {
+        const response = await fetch(`/api/people/${person.id}`, {
+          method: 'DELETE',
+        })
+        
+        if (response.ok) {
+          window.location.reload()
+        } else {
+          console.error('Failed to delete person')
+        }
+      } catch (error) {
+        console.error('Error deleting person:', error)
+      }
+    }
   }
 
   return (
@@ -74,7 +111,11 @@ export function PeoplePageClient({ people, personTypes }: PeoplePageClientProps)
       </div>
       
       {view === 'list' ? (
-        <PeopleTable people={people} personTypes={personTypes} />
+        <PeopleTable 
+          people={people} 
+          onEdit={handleEditPerson}
+          onDelete={handleDeletePerson}
+        />
       ) : (
         <PeopleGrid people={people} personTypes={personTypes} />
       )}
@@ -98,6 +139,22 @@ export function PeoplePageClient({ people, personTypes }: PeoplePageClientProps)
         personTypes={personTypes}
         preselectedTypeId={selectedTypeId}
       />
+
+      {editingPerson && (
+        <PersonModal
+          open={showEditModal}
+          onOpenChange={(open) => {
+            setShowEditModal(open)
+            if (!open) {
+              setEditingPerson(null)
+              window.location.reload()
+            }
+          }}
+          personTypes={personTypes}
+          person={editingPerson}
+          mode="view"
+        />
+      )}
     </div>
   )
 }

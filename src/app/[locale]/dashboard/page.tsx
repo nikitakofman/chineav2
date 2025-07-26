@@ -2,11 +2,12 @@ import { createClient } from '@/utils/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { StatsCard } from '@/components/dashboard/stats-card'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Package, DollarSign, AlertTriangle, Target, Plus, FileText, UserPlus, TrendingUp, Users, Calendar, ShoppingCart, BarChart3 } from 'lucide-react'
+import { Package, DollarSign, AlertTriangle, Target, Plus, FileText, UserPlus, TrendingUp, Users, Calendar, ShoppingCart } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 import { redirect } from 'next/navigation'
-import { checkUserBooks } from '@/app/actions/books'
-import Link from 'next/link'
+import { checkUserBooks, getSelectedBookId } from '@/app/actions/books'
+import { SalesTrendChart } from '@/components/dashboard/sales-trend-chart'
+import { QuickActions } from '@/components/dashboard/quick-actions'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -24,10 +25,14 @@ export default async function DashboardPage() {
   }
   
   // Get selected book ID from cookie or use first book
-  const selectedBookId = books[0].id // Will be improved with cookie storage
+  const selectedBookId = await getSelectedBookId()
+  
+  if (!selectedBookId) {
+    redirect('/books/setup')
+  }
 
   // Fetch essential stats from database
-  const [totalItems, totalIncidents, totalCosts, recentSales, soldItems, totalPeople, todaysItems] = await Promise.all([
+  const [totalItems, totalIncidents, totalCosts, recentInvoices, soldItems, totalPeople, todaysItems] = await Promise.all([
     prisma.items.count({ where: { book_id: selectedBookId } }),
     prisma.item_incidents.count({ 
       where: { 
@@ -38,10 +43,11 @@ export default async function DashboardPage() {
       } 
     }),
     prisma.costs.count({ where: { book_id: selectedBookId } }),
-    prisma.item_sales.count({ 
+    // Count recent invoices instead of item sales
+    prisma.invoices.count({ 
       where: { 
-        items: { book_id: selectedBookId },
-        sale_date: {
+        book_id: selectedBookId,
+        invoice_date: {
           gte: new Date(new Date().setDate(new Date().getDate() - 30))
         }
       } 
@@ -58,15 +64,26 @@ export default async function DashboardPage() {
     })
   ])
 
+  // Get all invoices for this book
+  const allInvoices = await prisma.invoices.findMany({
+    where: { 
+      book_id: selectedBookId
+    }
+  })
+
+  // Calculate revenue by summing invoice amounts manually
+  let totalRevenue = 0
+  allInvoices.forEach(invoice => {
+    totalRevenue += Number(invoice.total_amount || 0)
+  })
+
+  const totalInvoices = allInvoices.length
+
   // Calculate financial metrics
-  const [inventoryValue, totalRevenue, totalExpenses] = await Promise.all([
+  const [inventoryValue, totalExpenses] = await Promise.all([
     prisma.item_purchases.aggregate({
       where: { items: { book_id: selectedBookId } },
       _sum: { purchase_price: true }
-    }),
-    prisma.item_sales.aggregate({
-      where: { items: { book_id: selectedBookId } },
-      _sum: { sale_price: true }
     }),
     prisma.costs.aggregate({
       where: { book_id: selectedBookId },
@@ -74,10 +91,57 @@ export default async function DashboardPage() {
     })
   ])
 
+
   // Calculate profit/loss
-  const revenue = totalRevenue._sum.sale_price || 0
-  const expenses = (inventoryValue._sum.purchase_price || 0) + (totalExpenses._sum.amount || 0)
+  const revenue = totalRevenue
+  const expenses = Number(inventoryValue._sum.purchase_price || 0) + Number(totalExpenses._sum.amount || 0)
   const profitLoss = revenue - expenses
+
+  // Get sales trend data for the last 12 months
+  const currentDate = new Date()
+  const salesTrend = []
+  
+  for (let i = 11; i >= 0; i--) {
+    const year = currentDate.getFullYear()
+    const month = currentDate.getMonth() - i
+    
+    // Handle year boundary
+    const targetDate = new Date(year, month, 1)
+    const startDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1)
+    const endDate = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0, 23, 59, 59)
+    
+    const monthInvoices = await prisma.invoices.aggregate({
+      where: {
+        book_id: selectedBookId,
+        invoice_date: {
+          gte: startDate,
+          lte: endDate
+        }
+      },
+      _sum: { total_amount: true },
+      _count: { id: true }
+    })
+    
+    salesTrend.push({
+      month: startDate.toLocaleDateString('en-US', { month: 'short' }),
+      amount: Number(monthInvoices._sum.total_amount || 0),
+      count: monthInvoices._count.id
+    })
+  }
+  
+  // Calculate max amount for scaling the chart
+  const maxAmount = Math.max(...salesTrend.map(s => s.amount), 1)
+
+  // Fetch data for modals
+  const [categories, personTypes] = await Promise.all([
+    prisma.category.findMany({
+      where: { user_id: user.id },
+      orderBy: { name: 'asc' }
+    }),
+    prisma.person_type.findMany({
+      orderBy: { name: 'asc' }
+    })
+  ])
 
   return (
     <div className="p-4 md:p-6">
@@ -150,74 +214,23 @@ export default async function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">This Month</p>
-                <div className="text-2xl font-bold">{recentSales}</div>
-                <p className="text-xs text-muted-foreground">sales</p>
+                <div className="text-2xl font-bold">{recentInvoices}</div>
+                <p className="text-xs text-muted-foreground">invoices</p>
               </div>
               <ShoppingCart className="w-5 h-5 text-green-600" />
             </div>
           </CardContent>
         </Card>
 
-        {/* Chart Placeholder - Wide */}
-        <Card className="col-span-1 md:col-span-2 lg:col-span-3">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <BarChart3 className="w-5 h-5" />
-              Sales Trend
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-32 flex items-end justify-between gap-2">
-              {[65, 45, 78, 52, 89, 67, 43, 76, 58, 82, 94, 71].map((height, i) => (
-                <div
-                  key={i}
-                  className="bg-primary/20 rounded-t flex-1 min-w-0 transition-all hover:bg-primary/30"
-                  style={{ height: `${height}%` }}
-                />
-              ))}
-            </div>
-            <div className="mt-4 text-center">
-              <p className="text-sm text-muted-foreground">Last 12 months overview</p>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Sales Trend Chart */}
+        <SalesTrendChart salesData={salesTrend} />
 
         {/* Quick Actions */}
-        <Card className="col-span-1 md:col-span-2 lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">{t('quickActions')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <Link href="/dashboard/items">
-                <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-accent cursor-pointer transition-colors">
-                  <Plus className="w-4 h-4 text-primary" />
-                  <div>
-                    <p className="text-sm font-medium">{t('addNewItem')}</p>
-                  </div>
-                </div>
-              </Link>
-              
-              <Link href="/dashboard/people">
-                <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-accent cursor-pointer transition-colors">
-                  <UserPlus className="w-4 h-4 text-blue-600" />
-                  <div>
-                    <p className="text-sm font-medium">{t('addNewPerson')}</p>
-                  </div>
-                </div>
-              </Link>
-              
-              <Link href="/dashboard/incidents">
-                <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-accent cursor-pointer transition-colors">
-                  <FileText className="w-4 h-4 text-orange-600" />
-                  <div>
-                    <p className="text-sm font-medium">{t('viewIncidents')}</p>
-                  </div>
-                </div>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+        <QuickActions 
+          categories={categories}
+          personTypes={personTypes}
+          bookId={selectedBookId}
+        />
 
         {/* Inventory Value */}
         <Card>
@@ -247,6 +260,7 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
+
         {/* Performance Indicator */}
         <Card className="col-span-1 md:col-span-2">
           <CardHeader>
@@ -272,12 +286,12 @@ export default async function DashboardPage() {
               <div>
                 <div className="flex justify-between text-sm">
                   <span>Monthly Activity</span>
-                  <span className="font-medium">{recentSales}</span>
+                  <span className="font-medium">{recentInvoices}</span>
                 </div>
                 <div className="w-full bg-muted h-2 rounded-full">
                   <div 
                     className="h-full bg-blue-500 rounded-full" 
-                    style={{ width: `${recentSales > 0 ? Math.min(100, (recentSales / soldItems || 1) * 100) : 0}%` }}
+                    style={{ width: `${recentInvoices > 0 ? Math.min(100, (recentInvoices / totalInvoices || 1) * 100) : 0}%` }}
                   />
                 </div>
               </div>

@@ -1,3 +1,8 @@
+/**
+ * @deprecated This file has been replaced by people-migrated.ts which uses EntityService.
+ * Please use the migrated version for all new development.
+ * Migration guide: /MIGRATION_GUIDE.md
+ */
 'use server'
 
 import { revalidatePath } from 'next/cache'
@@ -22,20 +27,26 @@ export async function getPeople() {
   
   if (!user) return []
   
-  return prisma.person.findMany({
+  const people = await prisma.person.findMany({
     where: {
       user_id: user.id
     },
     include: {
       person_type: true,
-      item_purchases: {
+      invoices: {
         select: {
-          id: true
+          id: true,
+          invoice_number: true,
+          invoice_date: true,
+          total_amount: true,
+          status: true
         }
       },
-      item_sales: {
+      _count: {
         select: {
-          id: true
+          item_purchases: true,
+          item_sales: true,
+          invoices: true
         }
       }
     },
@@ -43,6 +54,42 @@ export async function getPeople() {
       created_at: 'desc'
     }
   })
+
+  // Fetch documents for each person using the centralized documents table
+  const peopleWithDocuments = await Promise.all(
+    people.map(async (person) => {
+      const documents = await prisma.documents.findMany({
+        where: {
+          entity_type: 'person',
+          entity_id: person.id,
+          is_deleted: false
+        },
+        select: {
+          id: true,
+          original_name: true,
+          file_size: true,
+          mime_type: true,
+          title: true,
+          description: true
+        },
+        orderBy: {
+          created_at: 'desc'
+        }
+      })
+
+      return {
+        ...person,
+        documents,
+        // Convert Decimal objects to numbers for client compatibility
+        invoices: person.invoices?.map(invoice => ({
+          ...invoice,
+          total_amount: Number(invoice.total_amount)
+        }))
+      }
+    })
+  )
+
+  return peopleWithDocuments
 }
 
 export async function createPerson(formData: FormData) {
@@ -161,6 +208,11 @@ export async function deletePerson(id: string) {
           select: {
             id: true
           }
+        },
+        invoices: {
+          select: {
+            id: true
+          }
         }
       }
     })
@@ -169,7 +221,7 @@ export async function deletePerson(id: string) {
       return { error: 'Person not found' }
     }
     
-    if (person.item_purchases.length > 0 || person.item_sales.length > 0) {
+    if (person.item_purchases.length > 0 || person.item_sales.length > 0 || person.invoices.length > 0) {
       return { error: 'Cannot delete person with associated transactions' }
     }
     

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useBook } from '@/contexts/book-context'
 import { createItem, getFieldDefinitionsForBook, updateItemCategory } from '@/app/actions/items'
 import { reportItemIncident } from '@/app/actions/incidents'
-import { createPerson, updatePerson } from '@/app/actions/people'
+import { createPerson, updatePerson, getPersonTypes } from '@/app/actions/people'
 import { createSale, getClients } from '@/app/actions/sales'
 import { getPersonTypeInfo } from '@/lib/person-type-utils'
 import {
@@ -30,6 +30,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { GenericCrudModal } from '@/components/shared/generic-crud-modal'
+import { AddPersonModal } from '@/components/shared/modal-configurations'
 import { FieldConfig } from '@/types/form-types'
 import { FileUploadItem } from '@/components/ui/file-upload'
 import { uploadMultipleFiles } from '@/lib/storage'
@@ -44,6 +45,9 @@ import {
 import { createClient } from '@/utils/supabase/client'
 import { ImageViewer } from '@/components/ui/image-viewer'
 import { DocumentViewer } from '@/components/ui/document-viewer'
+import { ConfirmationDialog } from '@/components/shared/confirmation-dialog'
+import { InvoiceViewModal } from '@/components/modals/invoice-view-modal'
+import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 
 // ============================================================================
@@ -191,6 +195,14 @@ interface PersonData {
   website?: string | null
   specialization?: string | null
   person_type?: PersonType | null
+  documents?: Array<{
+    id: string
+    original_name: string
+    file_size: string | null
+    mime_type: string | null
+    title: string | null
+    description: string | null
+  }>
 }
 
 interface ItemModalProps extends BaseModalProps {
@@ -214,6 +226,7 @@ interface PersonModalProps extends BaseModalProps {
   personTypes: PersonType[]
   person?: PersonData | null
   preselectedTypeId?: string | null
+  onSuccess?: () => void
 }
 
 interface SaleModalProps extends BaseModalProps {
@@ -402,6 +415,9 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
   const router = useRouter()
   const { selectedBook } = useBook()
   
+  // Generate unique form ID to prevent conflicts when multiple modals are open
+  const formId = useMemo(() => `entity-form-${props.entityType}-${Math.random().toString(36).substring(7)}`, [props.entityType])
+  
   // Common state
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -434,15 +450,23 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('')
   const [categories, setCategories] = useState<Category[]>(
-    props.entityType === 'item' ? props.categories : []
+    props.entityType === 'item' ? (props.categories || []) : []
   )
   
   // Person-specific state
   const [isEditMode, setIsEditMode] = useState(props.mode === 'create')
+  const [viewingInvoice, setViewingInvoice] = useState<{
+    invoiceData: any;
+    invoiceItems: any[];
+  } | null>(null)
   
   // Sale-specific state
   const [clients, setClients] = useState<Array<{ id: string; name: string; lastname: string | null }>>([])
   const [loadingClients, setLoadingClients] = useState(true)
+  const [showAddClientModal, setShowAddClientModal] = useState(false)
+  const [selectedClientId, setSelectedClientId] = useState<string>('')
+  const [personTypes, setPersonTypes] = useState<PersonType[]>([])
+  const [showInvoiceConfirmation, setShowInvoiceConfirmation] = useState(false)
   
   // Determine the actual mode considering edit toggle for person
   const effectiveMode = useMemo(() => {
@@ -588,8 +612,12 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
       if (props.entityType === 'sale') {
         setLoadingClients(true)
         try {
-          const clientsData = await getClients()
+          const [clientsData, typesData] = await Promise.all([
+            getClients(),
+            getPersonTypes()
+          ])
           setClients(clientsData)
+          setPersonTypes(typesData)
         } catch (error) {
           console.error('Failed to load clients:', error)
         } finally {
@@ -605,22 +633,36 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
       // Load entity-specific data
       if (props.entityType === 'item' && props.item) {
         setSelectedCategoryId(props.item.category_id || '')
+        
+        // If item has a category but it's not in the categories list, add it
+        if (props.item.category) {
+          setCategories(prev => {
+            // Check if category already exists in the list
+            if (prev.find(c => c.id === props.item.category?.id)) {
+              return prev
+            }
+            return [...prev, props.item.category!]
+          })
+        }
+        
         // Load images and documents
-        setCurrentImages(
-          props.item.images?.map(img => ({
-            id: img.id,
-            url: img.storage_url || '',
-            file_name: img.original_name,
-            file_size: img.file_size ? parseInt(img.file_size.toString()) : null,
-            mime_type: img.mime_type,
-            is_primary: img.is_primary,
-            position: img.position,
-            title: img.title,
-            alt_text: img.alt_text,
-            width: img.width,
-            height: img.height
-          })) || props.item.item_images || []
-        )
+        const itemImages = props.item.images?.map(img => ({
+          id: img.id,
+          url: img.storage_url || '',
+          file_name: img.original_name,
+          file_size: img.file_size ? parseInt(img.file_size.toString()) : null,
+          mime_type: img.mime_type,
+          is_primary: img.is_primary,
+          position: img.position ?? 0,
+          title: img.title,
+          alt_text: img.alt_text,
+          width: img.width,
+          height: img.height
+        })) || props.item.item_images || []
+        
+        // Sort images by position
+        itemImages.sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+        setCurrentImages(itemImages)
         setCurrentDocuments(
           props.item.documents?.map(doc => ({
             id: doc.id,
@@ -634,19 +676,34 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
         )
       } else if (props.entityType === 'incident' && props.incident) {
         // Load incident images
-        setCurrentImages(
-          props.incident.centralizedImages?.map(img => ({
-            id: img.id,
-            url: img.storage_url || '',
-            file_name: img.original_name,
-            file_size: img.file_size ? parseInt(img.file_size.toString()) : null,
-            mime_type: img.mime_type,
-            title: img.title,
-            alt_text: img.alt_text,
-            width: img.width,
-            height: img.height,
-            position: img.position || 0
-          })) || props.incident.images || []
+        const incidentImages = props.incident.centralizedImages?.map(img => ({
+          id: img.id,
+          url: img.storage_url || '',
+          file_name: img.original_name,
+          file_size: img.file_size ? parseInt(img.file_size.toString()) : null,
+          mime_type: img.mime_type,
+          title: img.title,
+          alt_text: img.alt_text,
+          width: img.width,
+          height: img.height,
+          position: img.position ?? 0
+        })) || props.incident.images || []
+        
+        // Sort images by position
+        incidentImages.sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+        setCurrentImages(incidentImages)
+      } else if (props.entityType === 'person' && props.person) {
+        // Load person documents
+        setCurrentDocuments(
+          props.person.documents?.map(doc => ({
+            id: doc.id,
+            url: '', // Person documents don't have a direct URL, they need to be fetched
+            file_name: doc.original_name,
+            file_size: doc.file_size ? parseInt(doc.file_size.toString()) : null,
+            mime_type: doc.mime_type,
+            title: doc.title,
+            description: doc.description
+          })) || []
         )
       }
       
@@ -672,21 +729,23 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
     if (!isReorderingRef.current && entityData && effectiveMode === 'view') {
       if (props.entityType === 'item' && 'images' in entityData) {
         const itemData = entityData as ItemData
-        setCurrentImages(
-          itemData.images?.map(img => ({
-            id: img.id,
-            url: img.storage_url || '',
-            file_name: img.original_name,
-            file_size: img.file_size ? parseInt(img.file_size.toString()) : null,
-            mime_type: img.mime_type,
-            is_primary: img.is_primary,
-            position: img.position,
-            title: img.title,
-            alt_text: img.alt_text,
-            width: img.width,
-            height: img.height
-          })) || itemData.item_images || []
-        )
+        const images = itemData.images?.map(img => ({
+          id: img.id,
+          url: img.storage_url || '',
+          file_name: img.original_name,
+          file_size: img.file_size ? parseInt(img.file_size.toString()) : null,
+          mime_type: img.mime_type,
+          is_primary: img.is_primary,
+          position: img.position ?? 0,
+          title: img.title,
+          alt_text: img.alt_text,
+          width: img.width,
+          height: img.height
+        })) || itemData.item_images || []
+        
+        // Sort images by position
+        images.sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+        setCurrentImages(images)
         setCurrentDocuments(
           itemData.documents?.map(doc => ({
             id: doc.id,
@@ -700,20 +759,22 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
         )
       } else if (props.entityType === 'incident' && 'centralizedImages' in entityData) {
         const incidentData = entityData as IncidentData
-        setCurrentImages(
-          incidentData.centralizedImages?.map(img => ({
-            id: img.id,
-            url: img.storage_url || '',
-            file_name: img.original_name,
-            file_size: img.file_size ? parseInt(img.file_size.toString()) : null,
-            mime_type: img.mime_type,
-            title: img.title,
-            alt_text: img.alt_text,
-            width: img.width,
-            height: img.height,
-            position: img.position || 0
-          })) || incidentData.images || []
-        )
+        const images = incidentData.centralizedImages?.map(img => ({
+          id: img.id,
+          url: img.storage_url || '',
+          file_name: img.original_name,
+          file_size: img.file_size ? parseInt(img.file_size.toString()) : null,
+          mime_type: img.mime_type,
+          title: img.title,
+          alt_text: img.alt_text,
+          width: img.width,
+          height: img.height,
+          position: img.position ?? 0
+        })) || incidentData.images || []
+        
+        // Sort images by position
+        images.sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+        setCurrentImages(images)
       }
     }
   }, [entityData, effectiveMode, props.entityType])
@@ -782,6 +843,27 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
       return () => clearTimeout(timeoutId)
     }
   }, [imageFiles, documentFiles, selectedCategoryId, effectiveMode, props.open, props.entityType])
+  
+  // Invoice handling for person view
+  const handleInvoiceClick = async (invoice: any) => {
+    try {
+      // Fetch the invoice items from the database
+      const response = await fetch(`/api/invoice/${invoice.id}/items`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch invoice items')
+      }
+      
+      const invoiceItems = await response.json()
+      
+      setViewingInvoice({
+        invoiceData: invoice,
+        invoiceItems: invoiceItems || []
+      })
+    } catch (error) {
+      console.error('Error fetching invoice items:', error)
+      toast.error('Failed to load invoice details')
+    }
+  }
   
   // File handling
   const handleImageFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -885,8 +967,14 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
       position: index
     }))
     
+    
     try {
-      const success = await reorderCentralizedImages(imagePositions)
+      const success = await reorderCentralizedImages(
+        imagePositions,
+        props.entityType,
+        entityData?.id
+      )
+      
       
       if (!success) {
         console.error('Failed to reorder images')
@@ -1127,9 +1215,38 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
     
     if (result.error) {
       setError(result.error)
+      return
+    }
+    
+    // Upload documents if person was created successfully
+    if (result.data?.id && documentFiles.length > 0) {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (user) {
+        const documentTypeId = await getOrCreateDocumentType('person')
+        if (documentTypeId) {
+          await uploadCentralizedDocuments(
+            documentFiles,
+            documentTypeId,
+            'person',
+            result.data.id,
+            user.id,
+            'people'
+          )
+        }
+      }
+    }
+    
+    clearTemporaryFiles()
+    
+    props.onOpenChange(false)
+    setIsEditMode(false)
+    
+    // Call onSuccess callback if provided (for modal stacking scenarios)
+    if (personProps.onSuccess) {
+      personProps.onSuccess()
     } else {
-      props.onOpenChange(false)
-      setIsEditMode(false)
       window.location.reload()
     }
   }
@@ -1144,9 +1261,91 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
     if (result.error) {
       setError(result.error)
     } else {
-      props.onOpenChange(false)
-      window.location.reload()
+      // Show success message
+      toast.success(t('items.saleRecorded'))
+      // Don't close the modal yet - show invoice confirmation first
+      setShowInvoiceConfirmation(true)
     }
+  }
+  
+  // Handle when a new client is created from the sale modal
+  const handleClientCreated = async () => {
+    setShowAddClientModal(false)
+    setLoadingClients(true)
+    try {
+      const clientsData = await getClients()
+      setClients(clientsData)
+      
+      // Find the most recently created client (last in the list when sorted by created_at desc)
+      // Since we don't have created_at in the response, we'll assume the new client is the one not in the old list
+      const oldClientIds = clients.map(c => c.id)
+      const newClient = clientsData.find(c => !oldClientIds.includes(c.id))
+      
+      if (newClient) {
+        setSelectedClientId(newClient.id)
+      }
+    } catch (error) {
+      console.error('Failed to reload clients:', error)
+    } finally {
+      setLoadingClients(false)
+    }
+  }
+
+  // Handle invoice confirmation modal actions
+  const handlePrintInvoice = async () => {
+    setShowInvoiceConfirmation(false)
+    
+    try {
+      const saleProps = props as SaleModalProps
+      
+      // Get the last created sale data
+      const response = await fetch('/api/invoice/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          itemId: saleProps.item.id,
+          clientId: selectedClientId,
+        }),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate invoice')
+      }
+      
+      // Download the PDF
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.style.display = 'none'
+      a.href = url
+      a.download = `invoice_${saleProps.item.item_number || 'item'}_${new Date().toISOString().split('T')[0]}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      
+      // Show success message
+      toast.success(t('items.invoiceDownloaded'))
+    } catch (error) {
+      console.error('Error generating invoice:', error)
+      toast.error(t('items.invoiceGenerationError'))
+    }
+    
+    // Close the sale modal and refresh
+    props.onOpenChange(false)
+    setTimeout(() => {
+      window.location.reload()
+    }, 100)
+  }
+
+  const handleSkipInvoice = () => {
+    setShowInvoiceConfirmation(false)
+    // Close the sale modal and refresh
+    props.onOpenChange(false)
+    setTimeout(() => {
+      window.location.reload()
+    }, 100)
   }
   
   // Update handler for view mode
@@ -1178,7 +1377,7 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
               props.entityType,
               entityData.id,
               user.id,
-              props.entityType === 'person' ? 'persons' : `${props.entityType}s`
+              props.entityType === 'incident' ? 'incidents' : 'items'
             )
             
             if (result.success && result.images) {
@@ -1201,21 +1400,23 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
         }
       }
       
-      // Upload pending documents (only for items)
-      if (props.entityType === 'item' && pendingDocumentUploads.length > 0) {
+      // Upload pending documents (for items and persons)
+      if ((props.entityType === 'item' || props.entityType === 'person') && pendingDocumentUploads.length > 0) {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         
         if (user) {
-          const documentTypeId = await getOrCreateDocumentType('item')
+          const entityTypeForDocuments = props.entityType === 'person' ? 'person' : 'item'
+          const tableName = props.entityType === 'person' ? 'people' : 'items'
+          const documentTypeId = await getOrCreateDocumentType(entityTypeForDocuments)
           if (documentTypeId) {
             const result = await uploadCentralizedDocuments(
               pendingDocumentUploads,
               documentTypeId,
-              'item',
+              entityTypeForDocuments,
               entityData.id,
               user.id,
-              'items'
+              tableName
             )
             
             if (result.success && result.documents) {
@@ -1290,6 +1491,7 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
     const itemProps = props as ItemModalProps
     const item = itemProps.item
     
+    
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
         {/* Left Column - All Details in One Card */}
@@ -1314,33 +1516,41 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
 
                 <div className="space-y-2">
                   <Label htmlFor="categoryId">{t('items.category')}</Label>
-                  <div className="flex gap-2">
-                    <Select 
-                      name="categoryId" 
-                      value={selectedCategoryId}
-                      onValueChange={handleCategoryChange}
-                    >
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder={t('items.selectCategory')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      onClick={() => setShowCategoryModal(true)}
-                      className="shrink-0"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  {isViewMode ? (
+                    <Input
+                      value={item?.category?.name || '-'}
+                      readOnly
+                      className="bg-muted"
+                    />
+                  ) : (
+                    <div className="flex gap-2">
+                      <Select 
+                        name="categoryId" 
+                        value={selectedCategoryId}
+                        onValueChange={handleCategoryChange}
+                      >
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder={t('items.selectCategory')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories && categories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        onClick={() => setShowCategoryModal(true)}
+                        className="shrink-0"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1902,11 +2112,131 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
             </CardContent>
           </Card>
 
+          {/* Invoices Section - Show in view mode */}
+          {isViewMode && person && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">{t('people.invoices')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {person.invoices && person.invoices.length > 0 ? (
+                  <div className="space-y-3">
+                    {person.invoices.map((invoice) => (
+                      <div 
+                        key={invoice.id}
+                        className="border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => handleInvoiceClick(invoice)}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-medium">#{invoice.invoice_number}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(invoice.invoice_date).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-green-600">
+                              €{Number(invoice.total_amount).toFixed(2)}
+                            </p>
+                            <Badge variant={invoice.status === 'paid' ? 'default' : 'secondary'} className="text-xs">
+                              {invoice.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No invoices found for this person.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
+        </div>
+
+        {/* Right Column - Documents */}
+        <div className="space-y-6">
+          {/* Documents Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">{t('items.documents')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isViewMode ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {currentDocuments.map((document) => (
+                    <div key={document.id} className="relative">
+                      <div 
+                        className="aspect-square bg-muted rounded-lg border border-border flex flex-col items-center justify-center p-2 cursor-pointer hover:bg-muted/80 transition-colors"
+                        onClick={() => setSelectedDocument({ 
+                          url: document.url, 
+                          fileName: document.file_name,
+                          title: document.title
+                        })}
+                      >
+                        <FileText className="w-8 h-8 text-muted-foreground mb-1" />
+                        <p className="text-xs text-center text-muted-foreground truncate w-full">
+                          {document.title}
+                        </p>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 truncate">{document.file_name}</p>
+                    </div>
+                  ))}
+                  
+                  {/* Show pending document uploads */}
+                  {pendingDocumentUploads.map((fileItem) => (
+                    <div key={fileItem.id} className="relative group">
+                      <div className="aspect-square bg-muted rounded-lg border border-border border-dashed flex flex-col items-center justify-center p-2">
+                        <FileText className="w-8 h-8 text-muted-foreground mb-1 opacity-60" />
+                        <p className="text-xs text-center text-muted-foreground truncate w-full opacity-60">
+                          {fileItem.file.name}
+                        </p>
+                        <span className="text-xs text-muted-foreground bg-muted-foreground/20 px-2 py-0.5 rounded mt-1">
+                          {t('common.pending')}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPendingDocumentUploads(prev => prev.filter(f => f.id !== fileItem.id))
+                          if (pendingDocumentUploads.length === 1 && pendingImageUploads.length === 0) {
+                            setHasChanges(false)
+                          }
+                        }}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  
+                  {/* Add new document button */}
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.txt"
+                      multiple
+                      onChange={handleDocumentFileSelect}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                    />
+                    <div className="aspect-square border-2 border-dashed border-muted-foreground/30 rounded-lg flex items-center justify-center hover:border-primary/50 hover:bg-primary/5 transition-colors cursor-pointer">
+                      <Plus className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                renderDocumentGrid()
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     )
@@ -2035,18 +2365,29 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
                     </span>
                   </div>
                 ) : (
-                  <Select name="client_id">
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('items.selectClient')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.name} {client.lastname || ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2">
+                    <Select name="client_id" value={selectedClientId} onValueChange={setSelectedClientId}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder={t('items.selectClient')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clients.map((client) => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.name} {client.lastname || ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      onClick={() => setShowAddClientModal(true)}
+                      className="shrink-0"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 )}
               </div>
 
@@ -2151,6 +2492,7 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
   const shouldUseGrayFooter = effectiveMode === 'create' || (props.entityType === 'person' && effectiveMode === 'edit')
   
   return (
+    <>
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent 
         className="!max-w-[calc(100vw-1rem)] w-[calc(100vw-1rem)] h-[95vh] p-0 gap-0
@@ -2223,7 +2565,7 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
             </div>
           </DialogHeader>
 
-          <form id="entity-form" onSubmit={handleSubmit} className="flex-1 overflow-hidden">
+          <form id={formId} onSubmit={handleSubmit} className="flex-1 overflow-hidden">
             <ScrollArea className="h-full">
               <div className="p-4 sm:p-6 lg:p-8">
                 {error && (
@@ -2278,7 +2620,7 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
                 {!isViewMode && (
                   <Button 
                     type="submit"
-                    form="entity-form"
+                    form={formId}
                     disabled={isLoading}
                   >
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -2349,7 +2691,7 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
                 return { error: result.error }
               }
               if (result.category) {
-                handleCategoryCreated(result.category)
+                handleCategoryCreated(result.category as Category)
                 toast.success(t('categories.createCategory') + ' ' + t('common.success'))
                 return { success: true, data: result.category }
               }
@@ -2361,6 +2703,31 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
           }}
         />
       )}
+      
+      {/* Invoice Confirmation Modal */}
+      <ConfirmationDialog
+        open={showInvoiceConfirmation}
+        onOpenChange={(open) => {
+          if (!open) {
+            // User clicked "No" or closed the dialog
+            handleSkipInvoice()
+          }
+        }}
+        config={{
+          title: t('items.printInvoiceTitle'),
+          description: t('items.printInvoiceDescription'),
+          confirmLabel: t('items.printInvoice'),
+          cancelLabel: t('common.no'),
+          variant: 'default'
+        }}
+        onConfirm={async () => {
+          handlePrintInvoice()
+          return { success: true }
+        }}
+        onSuccess={() => {
+          // This will be handled by handlePrintInvoice
+        }}
+      />
       
       {/* Image Viewer */}
       <ImageViewer
@@ -2382,5 +2749,33 @@ export function UnifiedEntityModal(props: UnifiedEntityModalProps) {
         onClose={() => setSelectedDocument(null)}
       />
     </Dialog>
+      
+      {/* Add Client Modal for Sale - Rendered outside main dialog to prevent form nesting */}
+      {props.entityType === 'sale' && (
+        <AddPersonModal
+          open={showAddClientModal}
+          onOpenChange={setShowAddClientModal}
+          personTypes={personTypes}
+          preselectedTypeId={personTypes.find(t => t.name.toLowerCase() === 'client')?.id || null}
+          onSuccess={handleClientCreated}
+        />
+      )}
+      
+      {/* Invoice View Modal */}
+      {viewingInvoice && (
+        <InvoiceViewModal
+          open={!!viewingInvoice}
+          onOpenChange={(open) => {
+            if (!open) setViewingInvoice(null)
+          }}
+          invoiceData={viewingInvoice.invoiceData}
+          invoiceItems={viewingInvoice.invoiceItems}
+          onRefresh={() => {
+            // Optionally refresh person data if needed
+            console.log('Invoice modal refresh requested')
+          }}
+        />
+      )}
+    </>
   )
 }

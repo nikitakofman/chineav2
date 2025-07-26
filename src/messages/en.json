@@ -11,6 +11,9 @@
     "success": "Success",
     "cancel": "Cancel",
     "save": "Save",
+    "create": "Create",
+    "update": "Update",
+    "submit": "Submit",
     "delete": "Delete",
     "edit": "Edit",
     "add": "Add",
@@ -24,10 +27,40 @@
     "reset": "Reset",
     "preview": "Preview",
     "actions": "Actions",
+    "searchPlaceholder": "Search...",
+    "selectAll": "Select all",
+    "selected": "selected",
     "saving": "Saving...",
+    "creating": "Creating...",
     "deleting": "Deleting...",
     "listView": "List",
-    "gridView": "Grid"
+    "gridView": "Grid",
+    "locale": "en",
+    "noData": "No data",
+    "openMenu": "Open menu",
+    "createdAt": "Created",
+    "view": "View",
+    "fieldRequired": "This field is required"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications",
+    "loading": "Loading...",
+    "markAllRead": "Mark all read",
+    "viewAll": "View all notifications",
+    "allNotifications": "All Notifications",
+    "description": "Manage and view all your notifications",
+    "all": "All",
+    "unread": "Unread",
+    "read": "Read",
+    "noUnread": "No unread notifications",
+    "noRead": "No read notifications",
+    "types": {
+      "general": "General",
+      "offer": "Offer",
+      "updates": "Updates"
+    },
+    "targeted": "Targeted"
   },
   "auth": {
     "signInTitle": "Sign in to your account",
@@ -83,6 +116,11 @@
     "deleteCategory": "Delete Category",
     "deleteCategoryConfirmation": "Are you sure you want to delete the category \"{name}\"? This action cannot be undone.",
     "categoryUpdatedSuccess": "Category updated successfully",
+    "cannotDeleteWithItems": "Cannot delete category with items",
+    "itemsCount": "Items",
+    "parentCategory": "Parent Category",
+    "noCategories": "No categories",
+    "noCategoriesDescription": "Create your first category to organize items",
     "categoryDeletedSuccess": "Category deleted successfully"
   },
   "dashboard": {
@@ -135,6 +173,8 @@
     "addPersonDescription": "Add clients or suppliers",
     "viewIncidents": "View Incidents",
     "manageIncidents": "Manage all incidents",
+    "salesTrend": "Sales Trend",
+    "totalInvoices": "Total Invoices",
     "activeIncidents": "active incidents",
     "account": {
       "billing": {
@@ -154,6 +194,8 @@
     "inStock": "In Stock",
     "itemsList": "Items List",
     "noItemsFound": "No items found",
+    "noItems": "No items",
+    "noItemsDescription": "No items have been added yet. Start by creating your first item.",
     "addFirstItem": "Add your first item to get started",
     "searchPlaceholder": "Search by item number, description, or category...",
     "allCategories": "All Categories",
@@ -176,6 +218,7 @@
     "actions": "Actions",
     "itemActions": "Item Actions",
     "viewDetails": "View Details",
+    "viewInvoice": "View Invoice",
     "editItem": "Edit Item",
     "deleteItem": "Delete Item",
     "exportItems": "Export Items",
@@ -232,6 +275,37 @@
     "saleLocationLabel": "Sale Location", 
     "saleLocationPlaceholder": "e.g., Store, Online, Fair",
     "recordSale": "Record Sale",
+    "saleRecorded": "Sale recorded successfully!",
+    "printInvoiceTitle": "Print Invoice?",
+    "printInvoiceDescription": "Do you want to print an invoice for this sale?",
+    "printInvoice": "Print Invoice",
+    "invoiceDownloaded": "Invoice downloaded successfully",
+    "invoiceGenerationError": "Failed to generate invoice",
+    "downloadInvoice": "Download Invoice",
+    "invoice": "Invoice",
+    "noClient": "No client",
+    "total": "Total",
+    "invoiceTotal": "Invoice Total",
+    "itemsInInvoice": "Items in Invoice",
+    "client": "Client",
+    "invoiceDate": "Invoice Date",
+    "multiSale": "Sell Multiple Items",
+    "multiSaleDescription": "Add multiple items to create a single invoice",
+    "sellItems": "Sell Items",
+    "salesRecorded": "Sales recorded successfully!",
+    "totalItems": "Total items",
+    "newItem": "New Item",
+    "selectedItems": "Selected Items",
+    "items": "items",
+    "saleDetails": "Sale Details",
+    "addItem": "Add Item",
+    "selectItemToSell": "Please select an item to sell",
+    "selectItemError": "Please select an item for all tabs",
+    "printMultiInvoiceDescription": "Do you want to print an invoice for all items?",
+    "selectItemsToSell": "Select Items to Sell",
+    "selectItemsDescription": "Select one or more items to add to the sale",
+    "noAvailableItems": "No available items to sell",
+    "addSelectedItems": "Add Selected Items",
     "soldSubtitle": "View and manage your sold items",
     "incidentsSubtitle": "Track and manage item incidents and issues",
     "noSoldItems": "No sold items found",
@@ -250,7 +324,25 @@
     "incidentLoss": "Loss",
     "incidentTheft": "Theft",
     "incidentMaintenance": "Maintenance",
-    "incidentQuality": "Quality Issue"
+    "incidentQuality": "Quality Issue",
+    "noItemsYet": "No items yet",
+    "startByAddingFirst": "Get started by adding your first item",
+    "noResultsFound": "No results found",
+    "tryAdjustingFilters": "Try adjusting your search or filters",
+    "sell": "Sell",
+    "reportIncident": "Report Incident",
+    "image": "Image"
+  },
+  "status": {
+    "available": "Available",
+    "sold": "Sold",
+    "open": "Open",
+    "resolved": "Resolved",
+    "closed": "Closed",
+    "pending": "Pending",
+    "up-to-date": "Up to date",
+    "needs-update": "Needs update",
+    "overdue": "Overdue"
   },
   "books": {
     "title": "Books",
@@ -266,6 +358,8 @@
     "creating": "Creating...",
     "selectBook": "Select a book",
     "createNewBook": "Create a new book",
+    "createBookDescription": "Create a new book to organize your items",
+    "bookDetails": "Book Details",
     "notAuthenticated": "Not authenticated",
     "failedToCreateBook": "Failed to create book",
     "bookCreatedSuccess": "Book created successfully"
@@ -334,7 +428,14 @@
     "type": "Type",
     "location": "Location",
     "transactions": "Transactions",
-    "noPeopleFound": "No people found",
+    "purchases": "Purchases",
+    "sales": "Sales", 
+    "invoices": "Invoices",
+    "cannotDeleteWithTransactions": "Cannot delete person with transactions",
+    "email": "Email",
+    "noPeople": "No people found",
+    "noPeopleFound": "No people found", 
+    "noPeopleDescription": "Add your first person to get started",
     "addPerson": "Add Person",
     "types": {
       "expert": "Expert",
@@ -372,6 +473,7 @@
     "addCost": "Add Cost",
     "addCostDescription": "Record a new cost entry",
     "noCosts": "No costs found",
+    "noCostsDescription": "Add your first cost to get started",
     "createFirstCost": "Add your first cost to get started",
     "date": "Date",
     "eventType": "Event Type",
@@ -388,7 +490,25 @@
     "editCost": "Edit Cost",
     "editCostDescription": "Update the cost details",
     "deleteCost": "Delete Cost",
-    "deleteCostConfirmation": "Are you sure you want to delete this cost of {amount} for {type} on {date}?"
+    "deleteCostConfirmation": "Are you sure you want to delete this cost of {amount} for {type} on {date}?",
+    "deleteCostDescription": "Are you sure you want to delete this cost of {amount} from {date}?",
+    "selectBook": "Select a book",
+    "amountMustBePositive": "Amount must be a positive number",
+    "add": "Add",
+    "save": "Save",
+    "adding": "Adding...",
+    "saving": "Saving...",
+    "eventTypeNameTooShort": "Event type name must be at least 2 characters",
+    "deleteEventTypeDescription": "Are you sure you want to delete the event type \"{name}\"?",
+    "eventTypeDeleted": "Event type deleted successfully",
+    "failedToDeleteEventType": "Failed to delete event type",
+    "costDeleted": "Cost deleted successfully",
+    "failedToDeleteCost": "Failed to delete cost",
+    "failedToLoadBooks": "Failed to load books",
+    "noBookSelected": "No book selected. Please select a book first.",
+    "quickAddHint": "Need a new event type? Select 'Add new event type' from the dropdown.",
+    "addNewEventType": "Add new event type",
+    "pleaseSelectEventType": "Please select a valid event type"
   },
   "incidents": {
     "title": "Incidents",
@@ -429,7 +549,25 @@
     "resolved": "Resolved",
     "closed": "Closed",
     "pleaseSelectItem": "Please select an item first",
-    "pleaseRequiredFields": "Please fill in all required fields"
+    "pleaseRequiredFields": "Please fill in all required fields",
+    "noIncidentsYet": "No incidents yet",
+    "allGood": "Everything is running smoothly",
+    "noResultsFound": "No results found",
+    "tryAdjustingFilters": "Try adjusting your search or filters",
+    "searchPlaceholder": "Search incidents...",
+    "allStatuses": "All Statuses",
+    "inProgress": "In Progress"
+  },
+  "soldItems": {
+    "title": "Sold Items",
+    "subtitle": "View and manage sold inventory",
+    "totalRevenue": "Total Revenue",
+    "searchPlaceholder": "Search sold items...",
+    "saleDate": "Sale Date",
+    "noSoldItemsYet": "No sold items yet",
+    "startSelling": "Start by marking items as sold",
+    "noResultsFound": "No results found",
+    "tryAdjustingFilters": "Try adjusting your search or filters"
   },
   "subscription": {
     "successTitle": "Subscription Successful!",
@@ -630,6 +768,220 @@
     "sendToAuthorities": "Send to Authorities",
     "qrScanner": "QR Code Scanner",
     "exportHistory": "Export History",
-    "noExportsFound": "No exports found"
+    "noExportsFound": "No exports found",
+    "totalItems": "Total Items",
+    "itemsSold": "sold",
+    "totalValue": "Total Value",
+    "thisMonth": "this month",
+    "incidents": "Incidents",
+    "incidentRate": "incident rate",
+    "lastExport": "Last Export",
+    "never": "Never",
+    "registryStatus": "Registry Status",
+    "status": {
+      "up-to-date": "Up to date",
+      "needs-update": "Needs update",
+      "overdue": "Overdue"
+    },
+    "neverExported": "Never",
+    "keyFeatures": "Key Features",
+    "feature1": "Automatic transaction logging",
+    "feature2": "Real-time compliance monitoring",
+    "feature3": "Secure data encryption",
+    "recentActivity": "Recent Activity",
+    "noActivityYet": "No activity yet",
+    "quickActions": "Quick Actions",
+    "viewReports": "View Reports",
+    "settings": "Settings",
+    "compliance": "Compliance",
+    "gdprCompliant": "GDPR Compliant",
+    "dataEncrypted": "Data Encrypted",
+    "regularBackups": "Regular Backups",
+    "exportCSV": "Export CSV",
+    "sendToAuthoritiesDescription": "Send your registry report to the authorities",
+    "authorityEmail": "Authority Email",
+    "authorityName": "Authority Name",
+    "authorityNamePlaceholder": "Police Department Name",
+    "emailSubject": "Email Subject",
+    "defaultSubject": "Police Registry Report",
+    "message": "Message",
+    "messagePlaceholder": "Optional message to include with the report...",
+    "sendReport": "Send Report",
+    "sending": "Sending..."
+  },
+  "documentation": {
+    "title": "Documentation",
+    "tabs": {
+      "gettingStarted": "Getting Started",
+      "features": "Features",
+      "workflows": "Workflows",
+      "faq": "FAQ"
+    },
+    "intro": {
+      "title": "Welcome to Chinea",
+      "description": "Chinea is a comprehensive inventory management system designed specifically for businesses that need to maintain police registries. It helps you track items, manage sales, monitor costs, and ensure compliance with regulatory requirements.",
+      "compliance": "This system is designed to meet all regulatory requirements for police registry maintenance, ensuring your business stays compliant."
+    },
+    "gettingStarted": {
+      "title": "Getting Started",
+      "description": "Follow these simple steps to set up your inventory management system",
+      "step1": {
+        "title": "Create Your Account",
+        "description": "Sign up with your email address and create a secure password. Your data is encrypted and protected."
+      },
+      "step2": {
+        "title": "Create Your First Book",
+        "description": "Police books are containers for your inventory. Create different books for different types of items or business locations."
+      },
+      "step3": {
+        "title": "Set Up Categories",
+        "description": "Organize your inventory by creating categories. You can create nested categories for better organization."
+      },
+      "step4": {
+        "title": "Add Your Items",
+        "description": "Start adding items to your inventory with details like purchase price, description, images, and custom fields."
+      },
+      "step5": {
+        "title": "Track Sales & Compliance",
+        "description": "Record sales, track incidents, and generate police registry reports to stay compliant with regulations."
+      }
+    },
+    "quickTips": {
+      "title": "Quick Tips",
+      "tip1": "Use the grid view for a visual overview of your items with images",
+      "tip2": "Export your data regularly to keep local backups",
+      "tip3": "Set up custom fields for specific item attributes unique to your business",
+      "tip4": "Use the search and filter features to quickly find items"
+    },
+    "features": {
+      "books": {
+        "title": "Books Management",
+        "description": "Create and manage police registry books",
+        "item1": "Multiple book types for different inventory categories",
+        "item2": "Reference tracking for easy identification",
+        "item3": "Export books for authority submission",
+        "item4": "Book-based data isolation for security"
+      },
+      "items": {
+        "title": "Inventory Management",
+        "description": "Complete item tracking and management",
+        "item1": "Detailed item information with custom fields",
+        "item2": "Image and document attachments",
+        "item3": "Purchase and location tracking",
+        "item4": "Status management (available/sold)",
+        "item5": "Bulk import/export capabilities"
+      },
+      "categories": {
+        "title": "Categories",
+        "description": "Organize your inventory efficiently",
+        "item1": "Hierarchical category structure",
+        "item2": "Parent-child relationships",
+        "item3": "Item count tracking per category"
+      },
+      "people": {
+        "title": "People Management",
+        "description": "Track all your business contacts",
+        "item1": "Manage experts, clients, and sellers",
+        "item2": "Complete contact information",
+        "item3": "Transaction history tracking",
+        "item4": "Specialization and expertise fields"
+      },
+      "costs": {
+        "title": "Cost Tracking",
+        "description": "Monitor your business expenses",
+        "item1": "Create custom cost event types",
+        "item2": "Track expenses by date and category",
+        "item3": "Monthly and total cost calculations",
+        "item4": "Detailed expense reporting"
+      },
+      "incidents": {
+        "title": "Incident Management",
+        "description": "Track and resolve item issues",
+        "item1": "Report damage, loss, theft, or quality issues",
+        "item2": "Track incident status and resolution",
+        "item3": "Attach images and documentation"
+      },
+      "additional": {
+        "title": "Additional Features",
+        "languages": {
+          "title": "Multi-language Support",
+          "description": "Available in English and French with easy language switching"
+        },
+        "theme": {
+          "title": "Theme Options",
+          "description": "Choose between light and dark themes for comfortable viewing"
+        },
+        "export": {
+          "title": "Data Export",
+          "description": "Export your data in CSV format for backup or analysis"
+        },
+        "search": {
+          "title": "Advanced Search",
+          "description": "Powerful search and filtering across all your data"
+        }
+      }
+    },
+    "workflows": {
+      "inventory": {
+        "title": "Inventory Workflow",
+        "description": "The typical process for managing your inventory",
+        "step1": "Create a new item with all required information",
+        "step2": "Upload images and attach relevant documents",
+        "step3": "Assign the item to a category for organization",
+        "step4": "Track the item's location and status",
+        "step5": "Update status when sold and record sale details"
+      },
+      "sales": {
+        "title": "Sales Workflow",
+        "description": "How to process a sale",
+        "step1": "Select the item to be sold from your inventory",
+        "step2": "Click 'Mark as Sold' and enter sale details",
+        "step3": "Add client information and payment method",
+        "step4": "The item is automatically moved to sold items"
+      },
+      "compliance": {
+        "title": "Compliance Workflow",
+        "description": "Maintaining regulatory compliance",
+        "step1": "Keep all item information up to date",
+        "step2": "Generate police registry reports regularly",
+        "step3": "Review the report for accuracy",
+        "step4": "Send to authorities or download for records"
+      }
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "description": "Common questions about using Chinea",
+      "q1": {
+        "question": "What is a police book?",
+        "answer": "A police book (livre de police) is a mandatory registry that certain businesses must maintain to track their inventory and transactions. It helps authorities monitor the flow of goods and prevent illegal trade."
+      },
+      "q2": {
+        "question": "How often should I generate reports?",
+        "answer": "The frequency depends on your local regulations. Most businesses generate reports monthly, but some may need to do it weekly or quarterly. Check with your local authorities for specific requirements."
+      },
+      "q3": {
+        "question": "Can I have multiple users on one account?",
+        "answer": "Currently, each account is designed for a single user. Multi-user functionality may be added in future updates."
+      },
+      "q4": {
+        "question": "Is my data secure?",
+        "answer": "Yes, all data is encrypted and stored securely. We use industry-standard security measures and regular backups to protect your information."
+      },
+      "q5": {
+        "question": "Can I import existing inventory?",
+        "answer": "Yes, you can bulk import items using CSV files. Prepare your data in the correct format and use the import feature in the items section."
+      },
+      "q6": {
+        "question": "What happens when I mark an item as sold?",
+        "answer": "The item's status changes to 'sold', it's removed from available inventory, and appears in the sold items section. All sale details are recorded for your records and reports."
+      }
+    },
+    "support": {
+      "title": "Need Help?",
+      "description": "If you have any questions or need assistance, we're here to help.",
+      "email": "Email",
+      "hours": "Support Hours",
+      "hoursValue": "Monday to Friday, 9 AM - 6 PM CET"
+    }
   }
 }

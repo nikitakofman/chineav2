@@ -2,11 +2,13 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Edit, Trash2, Plus } from 'lucide-react'
+import { Edit, Trash2, Plus, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { EditCostEventTypeModal } from './edit-cost-event-type-modal'
-import { DeleteCostEventTypeDialog } from './delete-cost-event-type-dialog'
+import { GenericCrudModal, type FieldConfig, type GenericCrudModalConfig } from '@/components/shared/generic-crud-modal'
+import { ConfirmationDialog, type ConfirmationDialogConfig } from '@/components/shared/confirmation-dialog'
+import { updateCostEventType, deleteCostEventType } from '@/app/actions/costs'
+import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 
 interface CostEventType {
@@ -23,8 +25,53 @@ interface CostEventTypesListProps {
 
 export function CostEventTypesList({ eventTypes, onSelectEventType }: CostEventTypesListProps) {
   const t = useTranslations()
+  const router = useRouter()
   const [editingEventType, setEditingEventType] = useState<CostEventType | null>(null)
   const [deletingEventType, setDeletingEventType] = useState<CostEventType | null>(null)
+
+  // Edit event type modal configuration
+  const getEditEventTypeModalConfig = (eventType: CostEventType): GenericCrudModalConfig => {
+    const fields: FieldConfig[] = [
+      {
+        name: 'name',
+        label: t('costs.eventTypeName'),
+        type: 'text',
+        required: true,
+        placeholder: t('costs.eventTypeNamePlaceholder'),
+        defaultValue: eventType.name,
+        validation: (value) => {
+          if (!value || value.trim().length < 2) {
+            return t('costs.eventTypeNameTooShort')
+          }
+          return null
+        }
+      }
+    ]
+
+    return {
+      title: t('costs.editEventType'),
+      description: t('costs.editEventTypeDescription'),
+      icon: Calendar,
+      fields,
+      submitLabel: t('costs.save'),
+      loadingLabel: t('costs.saving'),
+      mode: 'edit'
+    }
+  }
+
+  // Delete event type dialog configuration
+  const getDeleteEventTypeDialogConfig = (eventType: CostEventType): ConfirmationDialogConfig => ({
+    title: t('costs.deleteEventType'),
+    description: t('costs.deleteEventTypeDescription', {
+      name: eventType.name
+    }),
+    confirmLabel: t('common.delete'),
+    cancelLabel: t('common.cancel'),
+    variant: 'destructive',
+    successMessage: t('costs.eventTypeDeleted'),
+    errorMessage: t('costs.failedToDeleteEventType'),
+    requireRefresh: true
+  })
 
   if (eventTypes.length === 0) {
     return (
@@ -86,18 +133,36 @@ export function CostEventTypesList({ eventTypes, onSelectEventType }: CostEventT
       </div>
 
       {editingEventType && (
-        <EditCostEventTypeModal
+        <GenericCrudModal
           open={!!editingEventType}
           onOpenChange={(open) => !open && setEditingEventType(null)}
-          eventType={editingEventType}
+          config={getEditEventTypeModalConfig(editingEventType)}
+          initialData={{
+            name: editingEventType.name
+          }}
+          onSubmit={async (data) => {
+            const result = await updateCostEventType(editingEventType.id, data.name)
+            return result
+          }}
+          onSuccess={() => {
+            setEditingEventType(null)
+            router.refresh()
+          }}
         />
       )}
 
       {deletingEventType && (
-        <DeleteCostEventTypeDialog
+        <ConfirmationDialog
           open={!!deletingEventType}
           onOpenChange={(open) => !open && setDeletingEventType(null)}
-          eventType={deletingEventType}
+          config={getDeleteEventTypeDialogConfig(deletingEventType)}
+          onConfirm={async () => {
+            const result = await deleteCostEventType(deletingEventType.id)
+            return result
+          }}
+          onSuccess={() => {
+            setDeletingEventType(null)
+          }}
         />
       )}
     </>

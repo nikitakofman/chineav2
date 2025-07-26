@@ -1,16 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, Bell, BookOpen, ChevronDown, Plus, Menu, HelpCircle } from 'lucide-react'
+import { Search, BookOpen, ChevronDown, Plus, Menu, HelpCircle, Shield } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { LanguageSwitcher } from '@/components/language-switcher'
+import { NotificationDropdown } from '@/components/dashboard/notification-dropdown'
 import { useTranslations } from 'next-intl'
 import { useBook } from '@/contexts/book-context'
-import { BookCreateModal } from '@/components/books/book-create-modal'
+import { BookCreateModal } from '@/components/shared/modal-configurations'
 import { useMobileSidebar } from '@/contexts/mobile-sidebar-context'
 import { Separator } from '@/components/ui/separator'
+import { useRouter, useParams, usePathname } from 'next/navigation'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,13 +29,37 @@ interface DashboardHeaderClientProps {
     display_name: string | null
     description: string | null
   }>
+  unreadNotificationCount: number
 }
 
-export function DashboardHeaderClient({ bookTypes }: DashboardHeaderClientProps) {
+export function DashboardHeaderClient({ bookTypes, unreadNotificationCount }: DashboardHeaderClientProps) {
   const t = useTranslations()
-  const { selectedBook, books, setSelectedBook } = useBook()
+  const { selectedBook, books, setSelectedBook, setBooks } = useBook()
   const [showCreateModal, setShowCreateModal] = useState(false)
   const { toggle } = useMobileSidebar()
+  const router = useRouter()
+  const params = useParams()
+  const pathname = usePathname()
+
+  const handleBookCreated = async (newBook: any) => {
+    console.log('Book created:', newBook) // Debug log
+    
+    try {
+      // Close the modal first
+      setShowCreateModal(false)
+      
+      // Add the new book to the books list
+      const updatedBooks = [...books, newBook]
+      setBooks(updatedBooks)
+      
+      // Update the selected book to the new book (this also saves to localStorage and cookie)
+      await setSelectedBook(newBook)
+      
+      console.log('Book selection updated')
+    } catch (error) {
+      console.error('Error updating book selection:', error)
+    }
+  }
 
   return (
     <div className="bg-white dark:bg-card border-b border-border px-4 sm:px-6 py-3 sm:py-4">
@@ -96,14 +122,30 @@ export function DashboardHeaderClient({ bookTypes }: DashboardHeaderClientProps)
         </div>
         
         <div className="flex items-center space-x-1 sm:space-x-2 lg:space-x-4 flex-shrink-0">
-          <Button variant="ghost" size="icon" className="relative hidden sm:flex">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+          <div className="hidden sm:block">
+            <NotificationDropdown 
+              unreadCount={unreadNotificationCount} 
+              isActive={pathname?.includes('/notifications')}
+            />
+          </div>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="relative"
+            onClick={() => router.push(`/${params.locale}/dashboard/admin`)}
+            title="Admin"
+          >
+            <Shield className="w-5 h-5" />
           </Button>
+          <Separator orientation="vertical" className="h-6 mx-2" />
           <LanguageSwitcher />
           <ThemeToggle />
-          <Separator orientation="vertical" className="h-6 mx-2" />
-          <Button variant="ghost" size="icon" className="relative">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="relative"
+            onClick={() => router.push(`/${params.locale}/dashboard/documentation`)}
+          >
             <HelpCircle className="w-5 h-5" />
           </Button>
         </div>
@@ -113,6 +155,7 @@ export function DashboardHeaderClient({ bookTypes }: DashboardHeaderClientProps)
         open={showCreateModal}
         onOpenChange={setShowCreateModal}
         bookTypes={bookTypes}
+        onSuccess={handleBookCreated}
       />
     </div>
   )
