@@ -23,6 +23,14 @@ export async function middleware(request: NextRequest) {
   // Clone the response from intl middleware
   const response = intlResponse
 
+  // Skip auth check for static assets, API routes, and public pages
+  const publicPaths = ['/', '/connect', '/api', '/_next', '/favicon.ico']
+  const isPublicPath = publicPaths.some(path => pathname.includes(path))
+  
+  if (isPublicPath) {
+    return response
+  }
+
   // Set up Supabase client
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

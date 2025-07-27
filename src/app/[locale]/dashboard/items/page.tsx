@@ -3,8 +3,13 @@ import { prisma } from '@/lib/prisma'
 import { checkUserBooks, getSelectedBookId } from '@/app/actions/books'
 import { redirect } from 'next/navigation'
 import { ItemsPageClient } from '@/components/items/items-page-client'
+import { Prisma } from '@prisma/client'
 
-export default async function ItemsPage() {
+export default async function ItemsPage({
+  searchParams
+}: {
+  searchParams: { page?: string; search?: string; category?: string }
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -25,14 +30,37 @@ export default async function ItemsPage() {
     redirect('/books/setup')
   }
 
-  // Fetch items for the selected book (only in-stock items - no sales)
+  // Pagination configuration
+  const ITEMS_PER_PAGE = 50
+  const page = Number(searchParams.page) || 1
+  const skip = (page - 1) * ITEMS_PER_PAGE
+
+  // Build where clause with filters
+  const whereClause: Record<string, any> = {
+    book_id: selectedBookId,
+    item_sales: {
+      none: {}
+    }
+  }
+
+  if (searchParams.search) {
+    whereClause.OR = [
+      { item_number: { contains: searchParams.search, mode: 'insensitive' } },
+      { description: { contains: searchParams.search, mode: 'insensitive' } }
+    ]
+  }
+
+  if (searchParams.category) {
+    whereClause.category_id = searchParams.category
+  }
+
+  // Get total count for pagination
+  const totalItems = await prisma.items.count({ where: whereClause })
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE)
+
+  // Fetch items for the selected book with pagination
   const itemsRaw = await prisma.items.findMany({
-    where: {
-      book_id: selectedBookId,
-      item_sales: {
-        none: {}
-      }
-    },
+    where: whereClause,
     include: {
       category: true,
       item_purchases: {
@@ -51,7 +79,6 @@ export default async function ItemsPage() {
         },
         take: 1
       },
-      // Legacy item_documents removed - use centralized documents table query
       item_attributes: {
         include: {
           field_definitions: true
@@ -60,7 +87,9 @@ export default async function ItemsPage() {
     },
     orderBy: {
       created_at: 'desc'
-    }
+    },
+    skip,
+    take: ITEMS_PER_PAGE
   })
 
   // Get documents and images for all items using the centralized system
@@ -172,7 +201,13 @@ export default async function ItemsPage() {
 
   return (
     <div className="p-4 md:p-6">
-      <ItemsPageClient items={items} categories={categories} />
+      <ItemsPageClient 
+        items={items} 
+        categories={categories} 
+        currentPage={page}
+        totalPages={totalPages}
+        totalItems={totalItems}
+      />
     </div>
   )
 }

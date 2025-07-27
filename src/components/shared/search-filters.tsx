@@ -24,6 +24,9 @@ interface SearchFiltersProps {
   onCategoryChange: (categoryId: string) => void;
   showDateFilter?: boolean;
   onDateRangeChange?: (dateRange: DateRange) => void;
+  searchValue?: string;
+  categoryValue?: string;
+  hideDate?: boolean;
 }
 
 export function SearchFilters({
@@ -32,6 +35,9 @@ export function SearchFilters({
   onCategoryChange,
   showDateFilter = true,
   onDateRangeChange,
+  searchValue = '',
+  categoryValue = 'all',
+  hideDate = false,
 }: SearchFiltersProps) {
   const t = useTranslations();
 
@@ -44,12 +50,13 @@ export function SearchFilters({
           type="text"
           placeholder={t("items.searchPlaceholder")}
           className="pl-10 pr-4 bg-white h-10"
+          value={searchValue}
           onChange={(e) => onSearchChange(e.target.value)}
         />
       </div>
 
       {/* Category Filter */}
-      <Select onValueChange={onCategoryChange}>
+      <Select value={categoryValue} onValueChange={onCategoryChange}>
         <SelectTrigger className="w-full lg:w-[200px] bg-white h-10">
           <SelectValue placeholder={t("items.allCategories")} />
         </SelectTrigger>
@@ -64,7 +71,7 @@ export function SearchFilters({
       </Select>
 
       {/* Date Filter */}
-      {showDateFilter && (
+      {showDateFilter && !hideDate && (
         <DateRangePickerCompact
           onUpdate={(values) => {
             onDateRangeChange?.(values.range);

@@ -31,6 +31,7 @@ import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { GenericCrudModal } from '@/components/shared/generic-crud-modal'
 import { AddPersonModal } from '@/components/shared/modal-configurations'
+import NextImage from 'next/image'
 import { FieldConfig } from '@/types/form-types'
 import { FileUploadItem } from '@/components/ui/file-upload'
 import { uploadMultipleFiles } from '@/lib/storage'
@@ -328,10 +329,13 @@ const MediaGrid: React.FC<MediaGridProps> = ({
               height: image.height || undefined
             })}
           >
-            <img
-              src={image.url}
+            <NextImage
+              src={image.url || '/placeholder-image.svg'}
               alt={image.file_name}
-              className="w-full h-full object-cover pointer-events-none select-none"
+              fill
+              className="object-cover pointer-events-none select-none"
+              sizes="(max-width: 768px) 50vw, 25vw"
+              loading="lazy"
               onError={(e) => {
                 e.currentTarget.src = '/placeholder-image.png'
               }}
@@ -361,10 +365,12 @@ const MediaGrid: React.FC<MediaGridProps> = ({
       {pendingUploads.map((fileItem) => (
         <div key={fileItem.id} className="relative group">
           <div className="aspect-square bg-muted rounded-lg overflow-hidden border border-border border-dashed">
-            <img
-              src={fileItem.preview || ''}
+            <NextImage
+              src={fileItem.preview || '/placeholder-image.svg'}
               alt={fileItem.file.name}
-              className="w-full h-full object-cover opacity-60"
+              fill
+              className="object-cover opacity-60"
+              sizes="200px"
             />
             <div className="absolute inset-0 flex items-center justify-center bg-black/20">
               <span className="text-xs text-white bg-black/50 px-2 py-1 rounded">

@@ -4,7 +4,11 @@ import { checkUserBooks, getSelectedBookId } from '@/app/actions/books'
 import { redirect } from 'next/navigation'
 import { SoldItemsPageClient } from '@/components/items/sold-items-page-client'
 
-export default async function SoldItemsPage() {
+export default async function SoldItemsPage({
+  searchParams
+}: {
+  searchParams: { page?: string; search?: string }
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -25,11 +29,23 @@ export default async function SoldItemsPage() {
     redirect('/books/setup')
   }
 
-  // Fetch invoices with their associated items
+  // Pagination configuration
+  const ITEMS_PER_PAGE = 50
+  const page = Number(searchParams.page) || 1
+  const skip = (page - 1) * ITEMS_PER_PAGE
+
+  // Build where clause with search
+  const whereClause: Record<string, any> = {
+    book_id: selectedBookId
+  }
+
+  // Get total count
+  const totalInvoices = await prisma.invoices.count({ where: whereClause })
+  const totalPages = Math.ceil(totalInvoices / ITEMS_PER_PAGE)
+
+  // Fetch invoices with their associated items (with pagination)
   const invoicesRaw = await prisma.invoices.findMany({
-    where: {
-      book_id: selectedBookId
-    },
+    where: whereClause,
     include: {
       client: true,
       item_sales: {
@@ -60,7 +76,9 @@ export default async function SoldItemsPage() {
     },
     orderBy: {
       invoice_date: 'desc'
-    }
+    },
+    skip,
+    take: ITEMS_PER_PAGE
   })
 
   // Extract all items from invoices with serialized Decimal values
@@ -211,6 +229,9 @@ export default async function SoldItemsPage() {
         items={items} 
         categories={categories} 
         invoiceGroups={invoiceGroups}
+        currentPage={page}
+        totalPages={totalPages}
+        totalItems={totalInvoices}
       />
     </div>
   )

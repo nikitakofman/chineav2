@@ -36,6 +36,7 @@ import { fr, enUS } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { EmptyState } from './empty-state'
 import { ImageViewer } from '@/components/ui/image-viewer'
+import Image from 'next/image'
 
 // ============================================================================
 // Types and Interfaces
@@ -213,12 +214,9 @@ function formatValue(
         )
       }
       return (
-        <img
-          src={value}
-          alt=""
-          width={column.imageConfig?.width || 40}
-          height={column.imageConfig?.height || 40}
-          className="object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
+        <div 
+          className="relative cursor-pointer hover:opacity-80 transition-opacity"
+          style={{ width: column.imageConfig?.width || 40, height: column.imageConfig?.height || 40 }}
           onClick={() => {
             if (column.imageConfig?.onClick) {
               column.imageConfig.onClick(value)
@@ -226,13 +224,20 @@ function formatValue(
               openImageViewer(value, '')
             }
           }}
-          onError={(e) => {
-            // Fallback to placeholder on error
-            const target = e.target as HTMLImageElement
-            target.src = '/placeholder-image.svg'
-            target.onerror = null // Prevent infinite loop
-          }}
-        />
+        >
+          <Image
+            src={value || '/placeholder-image.svg'}
+            alt=""
+            fill
+            className="object-cover rounded"
+            sizes="40px"
+            loading="lazy"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement
+              target.src = '/placeholder-image.svg'
+            }}
+          />
+        </div>
       )
       
     case 'custom':

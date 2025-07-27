@@ -20,21 +20,19 @@ export default async function DashboardLayout({
     redirect('/connect')
   }
 
-  // Get user's books
-  const books = await checkUserBooks()
-  
-  // Get user's categories
-  const categories = await prisma.category.findMany({
-    where: {
-      user_id: user.id
-    },
-    orderBy: {
-      name: 'asc'
-    }
-  })
-
-  // Get unread notification count
-  const unreadNotificationCount = await getUnreadNotificationCount()
+  // Parallelize all data fetching
+  const [books, categories, unreadNotificationCount] = await Promise.all([
+    checkUserBooks(),
+    prisma.category.findMany({
+      where: {
+        user_id: user.id
+      },
+      orderBy: {
+        name: 'asc'
+      }
+    }),
+    getUnreadNotificationCount()
+  ])
 
   return (
     <BookProvider initialBooks={books}>

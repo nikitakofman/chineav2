@@ -139,6 +139,7 @@ model documents {
   @@index([entity_type, entity_id], map: "idx_documents_entity")
   @@index([is_deleted], map: "idx_documents_deleted")
   @@index([expiry_date], map: "idx_documents_expiry")
+  @@index([entity_type, entity_id, is_deleted], map: "idx_documents_entity_deleted")
 }
 
 // Centralized image type management
@@ -184,6 +185,7 @@ model images {
   @@index([is_deleted], map: "idx_images_deleted")
   @@index([is_primary], map: "idx_images_primary")
   @@index([position], map: "idx_images_position")
+  @@index([entity_type, entity_id, is_deleted], map: "idx_images_entity_deleted")
 }
 
 model field_definitions {
@@ -228,6 +230,7 @@ model item_incidents {
   incident_images   incident_images[]
 
   @@index([item_id], map: "idx_item_incidents_item_id")
+  @@index([incident_date], map: "idx_item_incidents_incident_date")
 }
 
 model item_locations {
@@ -257,6 +260,7 @@ model item_purchases {
   person         person?   @relation(fields: [seller_id], references: [id], onUpdate: NoAction)
 
   @@index([item_id], map: "idx_item_purchases_item_id")
+  @@index([seller_id], map: "idx_item_purchases_seller_id")
 }
 
 model item_sales {
@@ -276,6 +280,7 @@ model item_sales {
 
   @@index([item_id], map: "idx_item_sales_item_id")
   @@index([invoice_id], map: "idx_item_sales_invoice_id")
+  @@index([client_id], map: "idx_item_sales_client_id")
 }
 
 model items {
@@ -301,6 +306,7 @@ model items {
 
   @@index([book_id], map: "idx_items_book_id")
   @@index([category_id], map: "idx_items_category_id")
+  @@index([created_at], map: "idx_items_created_at")
 }
 
 model notifications {
@@ -467,5 +473,6 @@ model invoices {
   @@index([user_id], map: "idx_invoices_user_id")
   @@index([book_id], map: "idx_invoices_book_id")
   @@index([client_id], map: "idx_invoices_client_id")
+  @@index([invoice_date], map: "idx_invoices_invoice_date")
   @@unique([book_id, invoice_number], map: "idx_unique_invoice_number_per_book")
 }

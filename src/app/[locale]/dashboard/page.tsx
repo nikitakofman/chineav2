@@ -1,8 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { prisma } from '@/lib/prisma'
-import { StatsCard } from '@/components/dashboard/stats-card'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Package, DollarSign, AlertTriangle, Target, Plus, FileText, UserPlus, TrendingUp, Users, Calendar, ShoppingCart } from 'lucide-react'
+import { Package, DollarSign, AlertTriangle, Target, TrendingUp, Users, Calendar, ShoppingCart } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 import { redirect } from 'next/navigation'
 import { checkUserBooks, getSelectedBookId } from '@/app/actions/books'
@@ -64,20 +63,21 @@ export default async function DashboardPage() {
     })
   ])
 
-  // Get all invoices for this book
-  const allInvoices = await prisma.invoices.findMany({
+  // Get revenue and invoice count with a single aggregate query
+  const invoiceStats = await prisma.invoices.aggregate({
     where: { 
       book_id: selectedBookId
+    },
+    _sum: {
+      total_amount: true
+    },
+    _count: {
+      id: true
     }
   })
 
-  // Calculate revenue by summing invoice amounts manually
-  let totalRevenue = 0
-  allInvoices.forEach(invoice => {
-    totalRevenue += Number(invoice.total_amount || 0)
-  })
-
-  const totalInvoices = allInvoices.length
+  const totalRevenue = Number(invoiceStats._sum.total_amount || 0)
+  const totalInvoices = invoiceStats._count.id
 
   // Calculate financial metrics
   const [inventoryValue, totalExpenses] = await Promise.all([
@@ -97,40 +97,54 @@ export default async function DashboardPage() {
   const expenses = Number(inventoryValue._sum.purchase_price || 0) + Number(totalExpenses._sum.amount || 0)
   const profitLoss = revenue - expenses
 
-  // Get sales trend data for the last 12 months
+  // Get sales trend data for the last 12 months with a single query
   const currentDate = new Date()
-  const salesTrend = []
+  const twelveMonthsAgo = new Date(currentDate.getFullYear(), currentDate.getMonth() - 11, 1)
   
+  // Fetch all invoices for the last 12 months in one query
+  const last12MonthsInvoices = await prisma.invoices.findMany({
+    where: {
+      book_id: selectedBookId,
+      invoice_date: {
+        gte: twelveMonthsAgo
+      }
+    },
+    select: {
+      invoice_date: true,
+      total_amount: true
+    }
+  })
+  
+  // Process the data into monthly buckets
+  const salesByMonth = new Map()
+  
+  // Initialize all 12 months with zero values
   for (let i = 11; i >= 0; i--) {
     const year = currentDate.getFullYear()
     const month = currentDate.getMonth() - i
-    
-    // Handle year boundary
     const targetDate = new Date(year, month, 1)
-    const startDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1)
-    const endDate = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0, 23, 59, 59)
-    
-    const monthInvoices = await prisma.invoices.aggregate({
-      where: {
-        book_id: selectedBookId,
-        invoice_date: {
-          gte: startDate,
-          lte: endDate
-        }
-      },
-      _sum: { total_amount: true },
-      _count: { id: true }
-    })
-    
-    salesTrend.push({
-      month: startDate.toLocaleDateString('en-US', { month: 'short' }),
-      amount: Number(monthInvoices._sum.total_amount || 0),
-      count: monthInvoices._count.id
-    })
+    const monthKey = targetDate.toLocaleDateString('en-US', { month: 'short' })
+    salesByMonth.set(monthKey, { amount: 0, count: 0 })
   }
   
-  // Calculate max amount for scaling the chart
-  const maxAmount = Math.max(...salesTrend.map(s => s.amount), 1)
+  // Aggregate invoices by month
+  last12MonthsInvoices.forEach(invoice => {
+    if (invoice.invoice_date) {
+      const monthKey = invoice.invoice_date.toLocaleDateString('en-US', { month: 'short' })
+      const existing = salesByMonth.get(monthKey) || { amount: 0, count: 0 }
+      existing.amount += Number(invoice.total_amount || 0)
+      existing.count += 1
+      salesByMonth.set(monthKey, existing)
+    }
+  })
+  
+  // Convert to array format expected by the chart
+  const salesTrend = Array.from(salesByMonth.entries()).map(([month, data]) => ({
+    month,
+    amount: data.amount,
+    count: data.count
+  }))
+  
 
   // Fetch data for modals
   const [categories, personTypes] = await Promise.all([

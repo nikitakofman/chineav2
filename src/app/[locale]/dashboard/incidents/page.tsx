@@ -4,7 +4,11 @@ import { checkUserBooks, getSelectedBookId } from '@/app/actions/books'
 import { redirect } from 'next/navigation'
 import { IncidentsPageClient } from '@/components/items/incidents-page-client'
 
-export default async function IncidentsPage() {
+export default async function IncidentsPage({
+  searchParams
+}: {
+  searchParams: { page?: string; search?: string; status?: string }
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -25,13 +29,37 @@ export default async function IncidentsPage() {
     redirect('/books/setup')
   }
 
-  // Fetch incidents for items in the selected book
+  // Pagination configuration
+  const ITEMS_PER_PAGE = 50
+  const page = Number(searchParams.page) || 1
+  const skip = (page - 1) * ITEMS_PER_PAGE
+
+  // Build where clause
+  const whereClause: Record<string, any> = {
+    items: {
+      book_id: selectedBookId
+    }
+  }
+
+  if (searchParams.search) {
+    whereClause.OR = [
+      { description: { contains: searchParams.search, mode: 'insensitive' } },
+      { items: { item_number: { contains: searchParams.search, mode: 'insensitive' } } },
+      { items: { description: { contains: searchParams.search, mode: 'insensitive' } } }
+    ]
+  }
+
+  if (searchParams.status && searchParams.status !== 'all') {
+    whereClause.resolution_status = searchParams.status
+  }
+
+  // Get total count
+  const totalIncidents = await prisma.item_incidents.count({ where: whereClause })
+  const totalPages = Math.ceil(totalIncidents / ITEMS_PER_PAGE)
+
+  // Fetch incidents for items in the selected book with pagination
   const incidentsRaw = await prisma.item_incidents.findMany({
-    where: {
-      items: {
-        book_id: selectedBookId
-      }
-    },
+    where: whereClause,
     include: {
       items: {
         include: {
@@ -41,7 +69,9 @@ export default async function IncidentsPage() {
     },
     orderBy: {
       incident_date: 'desc'
-    }
+    },
+    skip,
+    take: ITEMS_PER_PAGE
   })
 
   // Get images for all incidents using the centralized system
@@ -119,7 +149,13 @@ export default async function IncidentsPage() {
 
   return (
     <div className="p-4 md:p-6">
-      <IncidentsPageClient incidents={incidents} categories={categories} />
+      <IncidentsPageClient 
+        incidents={incidents} 
+        categories={categories} 
+        currentPage={page}
+        totalPages={totalPages}
+        totalItems={totalIncidents}
+      />
     </div>
   )
 }

@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { ImageIcon } from 'lucide-react'
 import { ImageViewer } from '@/components/ui/image-viewer'
 import { useState } from 'react'
+import Image from 'next/image'
 
 // ============================================================================
 // Types
@@ -131,14 +132,16 @@ export function GridCard({
               }}
               className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 hover:opacity-90 transition-opacity cursor-pointer"
             >
-              <img
-                src={image.url}
+              <Image
+                src={image.url || '/placeholder-image.svg'}
                 alt={image.alt}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                loading="lazy"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement
                   target.src = '/placeholder-image.svg'
-                  target.onerror = null // Prevent infinite loop
                 }}
               />
               {image.count && image.count > 1 && (
